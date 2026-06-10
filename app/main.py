@@ -43,7 +43,7 @@ os.environ['GOOGLE_GENAI_USE_VERTEXAI'] = "TRUE"
 os.environ['GOOGLE_CLOUD_LOCATION'] = "us-west1"
 
 #For Vector Search 2.0
-LOCATION = "asia-northeast1"
+LOCATION = "asia-southeast1"
 
 _, PROJECT_ID = google.auth.default()
 
@@ -388,9 +388,9 @@ def _hybrid_collection_search(
                     search_field=ACTIVE_COLLECTION.text_vector_field,
                     vector=vectorsearch_v1beta.DenseVector(values=embedding),
                     top_k=SEARCH_TOP_K,
-                    output_fields=vectorsearch_v1beta.OutputFields(
-                        data_fields=["name", "description"]
-                    ),
+                    #output_fields=vectorsearch_v1beta.OutputFields(
+                    #    data_fields=["name", "description"]
+                    #),
                 )
             ),
             vectorsearch_v1beta.Search(
@@ -398,9 +398,9 @@ def _hybrid_collection_search(
                     search_field=ACTIVE_COLLECTION.image_vector_field,
                     vector=vectorsearch_v1beta.DenseVector(values=embedding),
                     top_k=SEARCH_TOP_K,
-                    output_fields=vectorsearch_v1beta.OutputFields(
-                        data_fields=["name", "description"]
-                    ),
+                    #output_fields=vectorsearch_v1beta.OutputFields(
+                    #    data_fields=["name", "description"]
+                    #),
                 )
             ),
         ],
@@ -410,9 +410,9 @@ def _hybrid_collection_search(
                     weights=weights
                 )
             ),
-            output_fields=vectorsearch_v1beta.OutputFields(
-                data_fields=["name", "description"]
-            ),
+            #output_fields=vectorsearch_v1beta.OutputFields(
+            #    data_fields=["name", "description"]
+            #),
             top_k=SEARCH_TOP_K,
         ),
     )
