@@ -22,7 +22,7 @@
           <h2>Your AI shopping lens</h2>
           <p>Show an item with your camera, talk naturally, or type a request.</p>
           <p>The native-audio model supports 24 languages for live conversation.</p>
-          <p>Search across roughly 1 million items from a <a href="https://www.mercari.com" target="_blank" rel="noreferrer">Mercari</a> product dataset in milliseconds.</p>
+          <p>Search across roughly 100K items from a <a href="https://www.amazon.com" target="_blank" rel="noreferrer">Amazon</a> product dataset in milliseconds.</p>
           <p>Built with <a href="https://google.github.io/adk-docs/streaming/" target="_blank" rel="noreferrer">ADK Gemini Live API Toolkit</a>, <a href="https://docs.cloud.google.com/vertex-ai/docs/vector-search-2/overview" target="_blank" rel="noreferrer">Vertex AI Vector Search 2</a>, and <a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/embedding-2" target="_blank" rel="noreferrer">Gemini Embedding 2</a>.</p>
           <ul id="video-intro-list">
             <li>See what your camera is showing</li>
@@ -50,10 +50,10 @@
           <p>I can see your camera, hear your voice, search the web, and find products that match what you show or ask for.</p>
           <p>Tap any tile in the mosaic to open the item details.</p>
           <div id="chat-empty-examples">
-            <button class="suggestion-btn" type="button" data-suggestion="What do you see?">What do you see?</button>
-            <button class="suggestion-btn" type="button" data-suggestion="Find items similar to this.">Find items similar to this.</button>
-            <button class="suggestion-btn" type="button" data-suggestion="What goes well with this shirt?">What goes well with this shirt?</button>
-            <button class="suggestion-btn" type="button" data-suggestion="Find a birthday present for my son.">Find a birthday present for my son.</button>
+            <button class="suggestion-btn" type="button" data-suggestion="무엇이 보이나요?">무엇이 보이나요?</button>
+            <button class="suggestion-btn" type="button" data-suggestion="이것과 유사한 제품을 찾아주세요.">이것과 유사한 제품을 찾아주세요.</button>
+            <button class="suggestion-btn" type="button" data-suggestion="이 셔츠와 잘 어울리는 것은 무엇일까요?">이 셔츠와 잘 어울리는 것은 무엇일까요?</button>
+            <button class="suggestion-btn" type="button" data-suggestion="가족을 위해 어울리는 선물을 찾아주세요.">가족을 위해 어울리는 선물을 찾아주세요.</button>
           </div>
         </div>
         <div id="messages"></div>
@@ -63,8 +63,6 @@
       </div>
     </main>
   </div>
-
-  <footer>Product data provided courtesy of <a href="https://www.mercari.com" target="_blank">Mercari</a></footer>
 
   <div id="item-popup">
     <div id="popup-backdrop"></div>

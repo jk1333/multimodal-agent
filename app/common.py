@@ -1,0 +1,45 @@
+from dotenv import load_dotenv
+import google.auth
+from pathlib import Path
+import os
+import logging
+
+load_dotenv(Path(__file__).parent / ".env", override=True)
+
+#For gemini live
+os.environ['GOOGLE_GENAI_USE_VERTEXAI'] = "TRUE"
+os.environ['GOOGLE_CLOUD_LOCATION'] = "us-west1"
+
+#For Vector Search 2.0
+LOCATION = "asia-southeast1"
+
+_, PROJECT_ID = google.auth.default()
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be an integer, got {value!r}") from exc
+
+EMBEDDING_MAX_RPM_ENV = "LENS_MOSAIC_GEMINI_EMBEDDING_MAX_RPM"
+EMBEDDING_MAX_REQUESTS_PER_MINUTE = _env_int(EMBEDDING_MAX_RPM_ENV, default=1500)
+
+SIMILAR_SEARCH_WORKER_ENV = "LENS_MOSAIC_SIMILAR_SEARCH_WORKERS"
+
+SIMILAR_SEARCH_WORKER_COUNT = max(1, _env_int(SIMILAR_SEARCH_WORKER_ENV, default=100))
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
