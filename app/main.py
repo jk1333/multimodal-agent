@@ -104,49 +104,6 @@ class FindItemsTestResponse(BaseModel):
     latency_ms: float
 
 
-agent = Agent(
-    name="mm_agent",
-    model=AGENT_MODEL,
-    tools=[google_search],
-    instruction="""\
-당신은 사용자의 쇼핑을 돕는 친절하고 전문적인 AI 쇼핑 어시스턴트입니다.
-
-## 기본 역량 및 원칙
-- 당신은 사용자의 카메라 영상(이미지)을 실시간으로 분석하고, 음성을 들을 수 있습니다.
-- 상품 검색을 위해 `find_items` 툴을 사용하며, 정보 탐색을 위해 `google_search` 툴을 사용합니다.
-- **반드시 한국어로 자연스럽고 정중하게 응답하세요.** 음성 대화 환경이므로 문장은 지나치게 길지 않고 간결해야 합니다.
-
-## 1. 유사 상품 찾기 (Finding Similar Products)
-사용자가 카메라에 비친 물건과 비슷하거나 동일한 상품을 찾아달라고 요청할 때의 행동 지침입니다.
-
-1. **사전 질문 금지:** 검색을 수행하기 전에 사용자에게 추가적인 질문을 던져 흐름을 끊지 마세요.
-2. **시각 데이터 정밀 분석:** 카메라에 찍힌 물건의 특징(브랜드, 로고, 텍스트, 색상, 고유한 형태)을 정확하게 파악하세요. 확실하지 않다면 카테고리 명을 명확히 규정합니다.
-3. **탐색 안내:** 찾으려는 물건을 정확히 인지했음을 사용자에게 알리고 즉시 검색을 시작합니다.
-   - *예시:* "KEF 스피커네요. 이와 유사한 상품들을 찾아보겠습니다."
-4. **Tool 호출 규칙 (`find_items`):** 
-   - 검색 정확도를 높이기 위해, 인지한 상품의 특징을 조합하여 **구체적인 영어 텍스트 쿼리(Descriptive English text queries)**를 작성하세요. (예: "KEF LSX II wireless bookshelf speaker")
-   - 사용자가 보고 싶어 하는 아이템의 핵심을 요약한 **짧은 영어 랭킹 쿼리(Short English ranking_query)**를 함께 전달하세요.
-5. **결과 브리핑:** `find_items` 결과가 반환되면, 사용자가 화면과 매칭하기 쉽도록 각 상품명을 **핵심 단어 위주로 2~3단어로 간결하게 축약**하여 읽어주세요.
-   - *예시:* "KEF 스피커, 북쉘프 스피커, 그리고 무선 서브우퍼를 찾았습니다. 지금 화면에서 확인하실 수 있어요."
-
-## 2. 맞춤 추천 및 스타일링 (Recommendations)
-사용자가 카메라에 비친 물건에 어울리는 조합(예: "이 컵에 어울리는 티포트"), 특정 목적(예: "아들 생일 선물"), 스타일링(예: "이 셔츠에 어울리는 바지")을 요청할 때의 행동 지침입니다.
-
-1. **사전 질문 금지:** 추천 전 질문을 하지 않고, 요청을 즉시 수락합니다.
-2. **검색 및 트렌드 분석 (`google_search`):** 
-   - 사용자의 요청과 카메라 속 오브젝트의 스타일(색상 조합, 인테리어 톤, 패션 스타일 등)에 가장 잘 어울리는 제품군이나 최신 쇼핑 트렌드를 `google_search`로 먼저 검색하세요.
-3. **쿼리 생성 (5개 제한):** 검색 결과를 바탕으로 사용자의 요구 조건에 완벽히 부합하는 **상품 설명 쿼리 5개**를 영어로 생성합니다.
-4. **Tool 호출 규칙 (`find_items`):** 생성한 5개의 쿼리와 함께, 추천 목적에 맞는 명확한 영어 `ranking_query`를 작성하여 `find_items`를 호출하세요.
-5. **결과 브리핑:** 검색된 상품들을 사용자에게 안내할 때는 추천하는 이유(예: 색상 조합, 스타일 매칭 등)를 한 문장으로 가볍게 덧붙인 후, 상품명을 간결하게 요약하여 읽어줍니다.
-   - *예시:* "그린 컬러 셔츠와 잘 어울리는 하의들을 찾아보았어요. 크림색 슬랙스, 베이지 치노 팬츠, 그리고 연청 데님을 찾았습니다. 화면에 띄워 드릴게요."
-
-## 3. 예외 상황 처리 및 정확도 유지 가이드
-- **모호한 영상 소스:** 카메라 영상이 흐리거나 어두워 상품을 식별하기 어려울 때는 짐작해서 검색하지 말고, "물건이 잘 보이지 않는데, 조금 더 가까이 비춰주시거나 밝은 곳에서 보여주실 수 있나요?"라고 정중히 요청하세요.
-- **검색 결과 없음:** `find_items` 결과가 만족스럽지 않거나 없을 경우, 억지로 다른 상품을 추천하지 말고 "요청하신 조건과 일치하는 정확한 상품을 찾지 못했습니다. 다른 키워드나 다른 각도에서 다시 도와드릴까요?"라고 안내하세요.
-""",
-)
-
-
 @dataclass
 class SessionState:
     session_id: str
@@ -234,11 +191,6 @@ class SessionState:
 
 SESSION_STATES: dict[str, SessionState] = {}
 SESSION_SERVICE = InMemorySessionService()
-RUNNER = Runner(app_name=APP_NAME, agent=agent, session_service=SESSION_SERVICE)
-RUN_CONFIG = RunConfig(
-    streaming_mode=StreamingMode.BIDI,
-    response_modalities=["AUDIO"],
-)
 MAIN_LOOP: asyncio.AbstractEventLoop | None = None
 SEARCH_REQUEST_QUEUE: queue.Queue[str | None] = queue.Queue()
 SEARCH_WORKERS: list[threading.Thread] = []
@@ -458,43 +410,6 @@ def _run_find_items_for_session(
     return session.recommended, latency_ms
 
 
-async def find_items(
-    queries: list[str],
-    ranking_query: str,
-    tool_context: ToolContext,
-    input_stream: LiveRequestQueue = None,
-):
-    """Find shopping items that match one or more product description queries.
-
-    Use this tool when you want to show the user product candidates on screen.
-    Provide a list of descriptive English product-search queries. The tool
-    searches and publishes the matched items to the UI, then yields the top item
-    names back to the live agent. ranking_query is used for the final Ranking API
-    rerank across all merged candidates.
-
-    Args:
-        queries: One or more descriptive English product-search queries.
-        ranking_query: A short English description used for final reranking.
-        tool_context: ADK tool context for the current user session.
-        input_stream: ADK live input stream for streaming tools.
-
-    Yields:
-        A comma-separated string of top matched item names, or "No items found".
-    """
-    recommended, _ = _run_find_items_for_session(
-        session_id=tool_context.session.id,
-        user_id=tool_context.session.user_id,
-        queries=queries,
-        ranking_query=ranking_query,
-        publish=True,
-    )
-    names = [item["name"] for item in recommended[:3]]
-    yield ", ".join(names) if names else "No items found"
-
-
-agent.tools.append(find_items)
-
-
 async def ensure_adk_session(user_id: str, session_id: str) -> None:
     if not await SESSION_SERVICE.get_session(
         app_name=APP_NAME, user_id=user_id, session_id=session_id
@@ -531,18 +446,6 @@ async def client_to_agent(
             queue.send_realtime(
                 types.Blob(mime_type=payload.get("mimeType", "image/jpeg"), data=image)
             )
-
-
-async def agent_to_client(
-    ws: WebSocket, user_id: str, session_id: str, queue: LiveRequestQueue
-) -> None:
-    async for event in RUNNER.run_live(
-        user_id=user_id,
-        session_id=session_id,
-        live_request_queue=queue,
-        run_config=RUN_CONFIG,
-    ):
-        await ws.send_text(event.model_dump_json(exclude_none=True, by_alias=True))
 
 
 def is_disconnect_error(exc: Exception) -> bool:
@@ -667,3 +570,107 @@ async def live_socket(ws: WebSocket, user_id: str, session_id: str) -> None:
         queue.close()
         session.user_id = None
         cleanup(session_id, session)
+
+
+async def find_items(
+    queries: list[str],
+    ranking_query: str,
+    tool_context: ToolContext,
+    input_stream: LiveRequestQueue = None,
+):
+    """Find shopping items that match one or more product description queries.
+
+    Use this tool when you want to show the user product candidates on screen.
+    Provide a list of descriptive English product-search queries. The tool
+    searches and publishes the matched items to the UI, then yields the top item
+    names back to the live agent. ranking_query is used for the final Ranking API
+    rerank across all merged candidates.
+
+    Args:
+        queries: One or more descriptive English product-search queries.
+        ranking_query: A short English description used for final reranking.
+        tool_context: ADK tool context for the current user session.
+        input_stream: ADK live input stream for streaming tools.
+
+    Yields:
+        A comma-separated string of top matched item names, or "No items found".
+    """
+    recommended, _ = _run_find_items_for_session(
+        session_id=tool_context.session.id,
+        user_id=tool_context.session.user_id,
+        queries=queries,
+        ranking_query=ranking_query,
+        publish=True,
+    )
+    names = [item["name"] for item in recommended[:3]]
+    yield ", ".join(names) if names else "No items found"
+
+
+agent = Agent(
+    name="mm_agent",
+    model=AGENT_MODEL,
+    tools=[google_search, find_items],
+    instruction="""\
+당신은 사용자의 쇼핑을 돕는 친절하고 전문적인 AI 쇼핑 어시스턴트입니다.
+
+기본 역량 및 원칙
+당신은 사용자의 카메라 영상(이미지)을 실시간으로 분석하고, 음성을 들을 수 있습니다.
+
+상품 검색을 위해 find_items 툴을 사용하며, 정보 탐색을 위해 Google Search 툴을 사용합니다.
+
+반드시 한국어로 자연스럽고 정중하게 응답하세요. 음성 대화 환경이므로 문장은 지나치게 길지 않고 간결해야 합니다.
+
+1. 유사 상품 찾기 (Finding Similar Products)
+사용자가 카메라에 비친 물건과 비슷하거나 동일한 상품을 찾아달라고 요청할 때의 행동 지침입니다.
+
+사전 질문 금지: 검색을 수행하기 전에 사용자에게 추가적인 질문을 던져 흐름을 끊지 마세요.
+
+시각 데이터 정밀 분석: 카메라에 찍힌 물건의 특징(브랜드, 로고, 텍스트, 색상, 고유한 형태)을 정확하게 파악하세요. 확실하지 않다면 카테고리 명을 명확히 규정합니다.
+
+탐색 안내 및 단 1회 툴 호출 (중요): - 찾으려는 물건을 정확히 인지했음을 사용자에게 알리고 즉시 find_items를 딱 1회만 호출합니다.
+
+[호출 제한 규칙] 이미 이전 대화 턴에서 find_items를 호출하여 결과를 보여주었다면, 사용자가 "다른 거 찾아줘", "더 보여줘" 등 새로운 추가 지시를 하기 전까지는 절대로 find_items를 다시 호출하지 마세요. 이전 결과를 기반으로 대화를 이어가야 합니다.
+
+Tool 호출 규칙 (find_items): - 검색 정확도를 높이기 위해, 인지한 상품의 특징을 조합하여 구체적인 영어 텍스트 쿼리(Descriptive English text queries)를 작성하세요.
+
+사용자가 보고 싶어 하는 아이템의 핵심을 요약한 짧은 영어 랭킹 쿼리(Short English ranking_query)를 함께 전달하세요.
+
+결과 브리핑: find_items 결과가 반환되면, 사용자가 화면과 매칭하기 쉽도록 각 상품명을 핵심 단어 위주로 2~3단어로 간결하게 축약하여 읽어주세요.
+
+2. 맞춤 추천 및 스타일링 (Recommendations)
+사용자가 카메라에 비친 물건에 어울리는 조합(예: "이 컵에 어울리는 티포트"), 특정 목적, 스타일링을 요청할 때의 행동 지침입니다. 이 과정에서 사용자에게 역으로 질문하지 마세요.
+
+사전 질문 및 대화 금지 (중요): 추천 요청을 받으면 사용자에게 스타일 취향, 선호도 등을 되묻지 말고 즉시 다음 단계(검색 및 툴 호출)로 진행하세요. "추천해 드릴게요"라는 안내와 동시에 프로세스를 시작합니다.
+
+순차적 툴 실행 흐름 가이드 (중요):
+
+Step 1 (Google Search): 사용자의 요청과 카메라 속 오브젝트의 스타일에 맞는 제품군이나 최신 쇼핑 트렌드를 Google Search로 먼저 검색합니다. (이 단계에서 사용자에게 말을 걸며 멈추지 마세요)
+
+Step 2 (쿼리 생성): 검색 결과를 바탕으로 사용자의 요구 조건에 부합하는 상품 설명 쿼리 5개를 영어로 내부적으로 생성합니다.
+
+Step 3 (find_items 호출 강제): 생성한 5개의 쿼리와 명확한 영어 ranking_query를 사용하여 반드시 find_items 툴을 연속으로 호출하세요. 트렌드 분석만 하고 멈추면 안 됩니다.
+
+결과 브리핑: find_items까지 모두 완료되어 상품이 검색되면, 추천 이유를 한 문장으로 가볍게 덧붙인 후 상품명을 간결하게 요약하여 읽어줍니다.
+
+3. 예외 상황 처리 및 정확도 유지 가이드
+모호한 영상 소스: 카메라 영상이 흐리거나 어두워 상품을 식별하기 어려울 때는 짐작해서 검색하지 말고, "물건이 잘 보이지 않는데, 조금 더 가까이 비춰주시거나 밝은 곳에서 보여주실 수 있나요?"라고 정중히 요청하세요.
+
+검색 결과 없음: find_items 결과가 만족스럽지 않거나 없을 경우, 억지로 다른 상품을 추천하지 말고 "요청하신 조건과 일치하는 정확한 상품을 찾지 못했습니다. 다른 키워드나 다른 각도에서 다시 도와드릴까요?"라고 안내하세요.""",
+)
+
+RUNNER = Runner(app_name=APP_NAME, agent=agent, session_service=SESSION_SERVICE)
+RUN_CONFIG = RunConfig(
+    streaming_mode=StreamingMode.BIDI,
+    response_modalities=["AUDIO"],
+)
+
+async def agent_to_client(
+    ws: WebSocket, user_id: str, session_id: str, queue: LiveRequestQueue
+) -> None:
+    async for event in RUNNER.run_live(
+        user_id=user_id,
+        session_id=session_id,
+        live_request_queue=queue,
+        run_config=RUN_CONFIG,
+    ):
+        await ws.send_text(event.model_dump_json(exclude_none=True, by_alias=True))
