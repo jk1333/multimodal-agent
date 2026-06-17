@@ -248,7 +248,7 @@ def _hybrid_collection_search(
                     vector=vectorsearch_v1beta.DenseVector(values=embedding),
                     top_k=SEARCH_TOP_K,
                     output_fields=vectorsearch_v1beta.OutputFields(
-                        data_fields=["*"]
+                        data_fields=["name", "description"]
                     ),
                 )
             ),
@@ -258,7 +258,7 @@ def _hybrid_collection_search(
                     vector=vectorsearch_v1beta.DenseVector(values=embedding),
                     top_k=SEARCH_TOP_K,
                     output_fields=vectorsearch_v1beta.OutputFields(
-                        data_fields=["*"]
+                        data_fields=["name", "description"]
                     ),
                 )
             ),
@@ -270,7 +270,7 @@ def _hybrid_collection_search(
                 )
             ),
             output_fields=vectorsearch_v1beta.OutputFields(
-                data_fields=["*"]
+                data_fields=["name", "description"]
             ),
             top_k=SEARCH_TOP_K,
         ),
@@ -304,7 +304,7 @@ def _image_similarity_collection_search(image: bytes) -> tuple[list[dict], float
             vector=vectorsearch_v1beta.DenseVector(values=embedding),
             top_k=SEARCH_TOP_K,
             output_fields=vectorsearch_v1beta.OutputFields(
-                data_fields=["*"]
+                data_fields=["name", "description"]
             ),
         ),
     )
