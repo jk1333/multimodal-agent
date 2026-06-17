@@ -358,8 +358,6 @@ def _get_item_details(item_id: str) -> dict | None:
 
     return {
         "id": item_id,
-        #"name": "",
-        #"description": "",
         "price": "",
         "url": "",
         "img_url": f"https://storage.googleapis.com/jk-amazon-products-thumbnail/{item_id}.webp",
