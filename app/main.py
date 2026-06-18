@@ -30,15 +30,13 @@ from google import genai
 
 from google.genai import types
 from pydantic import BaseModel
-from .common import PROJECT_ID, LOCATION
+from .common import PROJECT_ID, LOCATION, AGENT_MODEL
 from .common import logger
 from .embedding_vector import _collection_search, _rank_results, _get_item_details, _image_similarity_search, EmbeddingRateLimitExceeded
 from .common import SIMILAR_SEARCH_WORKER_COUNT
 
-
 APP_NAME = "lens-mosaic-hosted"
 STATIC_DIR = Path(__file__).parent / "static"
-AGENT_MODEL = "gemini-live-2.5-flash-native-audio"
 
 MAX_TILE_ITEMS = 64
 
@@ -662,6 +660,9 @@ RUNNER = Runner(app_name=APP_NAME, agent=agent, session_service=SESSION_SERVICE)
 RUN_CONFIG = RunConfig(
     streaming_mode=StreamingMode.BIDI,
     response_modalities=["AUDIO"],
+    proactivity=types.ProactivityConfig(
+        proactive_audio=True
+    )
 )
 
 async def agent_to_client(
