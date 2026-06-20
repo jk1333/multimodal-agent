@@ -2,7 +2,7 @@ from google import genai
 from google.cloud import discoveryengine_v1 as discoveryengine
 from google.cloud import vectorsearch_v1beta
 from time import perf_counter, monotonic, sleep
-from .common import PROJECT_ID, LOCATION
+from .common import PROJECT_ID, LOCATION, IMAGE_SERVER
 from .common import EMBEDDING_MAX_REQUESTS_PER_MINUTE
 import os
 from google.genai import types
@@ -360,7 +360,7 @@ def _get_item_details(item_id: str) -> dict | None:
         "id": item_id,
         "price": "",
         "url": "",
-        "img_url": f"https://storage.googleapis.com/jk-amazon-products-thumbnail/{item_id}.webp",
+        "img_url": f"https://{IMAGE_SERVER}/{item_id}.webp",
         "name": str(obj.data.get("name", "")),
         "description": str(obj.data.get("description", "")),
         #"price": str(obj.data.get("price", "")),

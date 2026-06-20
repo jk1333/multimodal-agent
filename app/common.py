@@ -6,11 +6,15 @@ import logging
 
 load_dotenv(Path(__file__).parent / ".env", override=True)
 
+#For thumbnail server
+IMAGE_SERVER = "8.233.46.107"
+#IMAGE_SERVER = "storage.googleapis.com/jk-amazon-products-thumbnail"
+
 #For gemini live to use VertexAI
-#os.environ['GOOGLE_GENAI_USE_VERTEXAI'] = "TRUE"
-#os.environ['GOOGLE_CLOUD_LOCATION'] = "us-west1"
-#AGENT_MODEL = "gemini-live-2.5-flash-native-audio"
-AGENT_MODEL = "gemini-3.1-flash-live-preview"
+os.environ['GOOGLE_GENAI_USE_VERTEXAI'] = "TRUE"
+os.environ['GOOGLE_CLOUD_LOCATION'] = "us-west1"
+AGENT_MODEL = "gemini-live-2.5-flash-native-audio"
+#AGENT_MODEL = "gemini-3.1-flash-live-preview"
 
 #For Vector Search 2.0
 LOCATION = "asia-southeast1"

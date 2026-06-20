@@ -14,6 +14,9 @@ const canvasEl = document.getElementById("canvas");
 const AGENT_VISION_SEND_MS = 1000;
 const CAMERA_FRAME_WIDTH = 320;
 
+const imageServer = "8.233.46.107"
+//const imageServer = "storage.googleapis.com/jk-amazon-products-thumbnail"
+
 let ws = null;
 let micOn = false;
 let camOn = false;
@@ -376,7 +379,7 @@ function getTileSize() {
 
 function buildTileImageUrl(id) {
   const { w, h } = getTileSize();
-  return `https://storage.googleapis.com/jk-amazon-products-thumbnail/${id}.webp`;
+  return `https://${imageServer}/${id}.webp`;
   //return `https://u-mercari-images.mercdn.net/photos/${id}_1.jpg?w=${w}&h=${h}&fitcrop&sharpen`;
 }
 
@@ -835,7 +838,7 @@ async function showItemPopup(itemId) {
       itemPopup.classList.add("visible");
     };
     //img.src = `https://u-mercari-images.mercdn.net/photos/${itemId}_1.jpg?w=480&h=480&fitcrop&sharpen`;
-    img.src = `https://storage.googleapis.com/jk-amazon-products-thumbnail/${itemId}.webp`;
+    img.src = `https://${imageServer}/${itemId}.webp`;
   } catch (e) {
     console.error("Failed to load item details:", e);
     closePopup();
