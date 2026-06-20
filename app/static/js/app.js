@@ -14,7 +14,7 @@ const canvasEl = document.getElementById("canvas");
 const AGENT_VISION_SEND_MS = 1000;
 const CAMERA_FRAME_WIDTH = 320;
 
-const imageServer = "http://8.233.46.107"
+const imageServer = "https://thumbnail.aidemo.dev"
 //const imageServer = "https://storage.googleapis.com/jk-amazon-products-thumbnail"
 
 let ws = null;

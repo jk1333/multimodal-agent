@@ -7,7 +7,7 @@ import logging
 load_dotenv(Path(__file__).parent / ".env", override=True)
 
 #For thumbnail server
-IMAGE_SERVER = "http://8.233.46.107"
+IMAGE_SERVER = "https://thumbnail.aidemo.dev"
 #IMAGE_SERVER = "https://storage.googleapis.com/jk-amazon-products-thumbnail"
 
 #For gemini live to use VertexAI
