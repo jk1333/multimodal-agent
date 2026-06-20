@@ -360,7 +360,7 @@ def _get_item_details(item_id: str) -> dict | None:
         "id": item_id,
         "price": "",
         "url": "",
-        "img_url": f"https://{IMAGE_SERVER}/{item_id}.webp",
+        "img_url": f"{IMAGE_SERVER}/{item_id}.webp",
         "name": str(obj.data.get("name", "")),
         "description": str(obj.data.get("description", "")),
         #"price": str(obj.data.get("price", "")),
