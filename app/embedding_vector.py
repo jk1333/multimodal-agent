@@ -202,6 +202,7 @@ def _image_similarity_search(image: bytes) -> list[dict]:
     started_at = perf_counter()
     results, embed_ms, search_ms = _image_similarity_collection_search(image=image)
     total_ms = (perf_counter() - started_at) * 1000
+    '''
     logger.info(
         "Search latency: model=%s source=image-similarity rerank=%s embed_ms=%.1f "
         "search_ms=%.1f total_ms=%.1f results=%d",
@@ -212,6 +213,7 @@ def _image_similarity_search(image: bytes) -> list[dict]:
         total_ms,
         len(results),
     )
+    '''
     return results
 
 
