@@ -6,6 +6,8 @@ import logging
 
 load_dotenv(Path(__file__).parent / ".env", override=True)
 
+_, PROJECT_ID = google.auth.default()
+
 #For thumbnail server
 IMAGE_SERVER = "https://thumbnail.aidemo.dev"
 #IMAGE_SERVER = "https://storage.googleapis.com/jk-amazon-products-thumbnail"
@@ -20,8 +22,8 @@ AGENT_MODEL = "gemini-3.1-flash-live-preview"
 
 #For Vector Search 2.0
 LOCATION = "asia-southeast1"
-
-_, PROJECT_ID = google.auth.default()
+#COLLECTION_ID = f"projects/{PROJECT_ID}/locations/{LOCATION}/collections/compact-amazon-product-dataset-image-text-768"
+COLLECTION_ID = "projects/sandbox-373102/locations/asia-southeast1/collections/amazon-product-dataset-image-text-768-all"
 
 def _env_flag(name: str, default: bool = False) -> bool:
     value = os.getenv(name)

@@ -2,7 +2,7 @@ from google import genai
 from google.cloud import discoveryengine_v1 as discoveryengine
 from google.cloud import vectorsearch_v1beta
 from time import perf_counter, monotonic, sleep
-from .common import PROJECT_ID, LOCATION, IMAGE_SERVER
+from .common import PROJECT_ID, COLLECTION_ID, IMAGE_SERVER
 from .common import EMBEDDING_MAX_REQUESTS_PER_MINUTE
 import os
 from google.genai import types
@@ -14,7 +14,6 @@ from .common import logger
 RANKING_CONFIG = (
     f"projects/{PROJECT_ID}/locations/global/rankingConfigs/default_ranking_config"
 )
-COLLECTION_ID = "compact-amazon-product-dataset-image-text-768"
 DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
 
 EMBEDDING_MAX_RETRIES = 3
@@ -31,24 +30,13 @@ class CollectionConfig:
     image_vector_field: str
     output_dimensionality: int | None = None
 
-SUPPORTED_COLLECTIONS: dict[str, CollectionConfig] = {
-    COLLECTION_ID: CollectionConfig(
-        collection_id=COLLECTION_ID,
-        embedding_model="gemini-embedding-2",
-        text_vector_field="text_embedding",
-        image_vector_field="image_embedding",
-        output_dimensionality=768,
-    ),
-}
-
-try:
-    ACTIVE_COLLECTION = SUPPORTED_COLLECTIONS[COLLECTION_ID]
-except KeyError as exc:
-    supported = ", ".join(sorted(SUPPORTED_COLLECTIONS))
-    raise RuntimeError(
-        "Unsupported LENS_MOSAIC_COLLECTION_ID "
-        f"{COLLECTION_ID!r}. Supported values: {supported}"
-    ) from exc
+ACTIVE_COLLECTION = CollectionConfig(
+    collection_id=COLLECTION_ID,
+    embedding_model="gemini-embedding-2",
+    text_vector_field="text_embedding",
+    image_vector_field="image_embedding",
+    output_dimensionality=768,
+)
 
 @dataclass
 class RollingWindowRateLimiter:
@@ -95,9 +83,6 @@ embedding_client = genai.Client(
 search_client = vectorsearch_v1beta.DataObjectSearchServiceClient()
 data_client = vectorsearch_v1beta.DataObjectServiceClient()
 rank_client = discoveryengine.RankServiceClient()
-
-def _collection_path() -> str:
-    return f"projects/{PROJECT_ID}/locations/{LOCATION}/collections/{ACTIVE_COLLECTION.collection_id}"
 
 def _search_result_to_dict(result: vectorsearch_v1beta.SearchResult) -> dict | None:
     obj = result.data_object
@@ -240,7 +225,7 @@ def _hybrid_collection_search(
     weights = TEXT_QUERY_HYBRID_WEIGHTS if text is not None else IMAGE_QUERY_HYBRID_WEIGHTS
     batch_started_at = perf_counter()
     request = vectorsearch_v1beta.BatchSearchDataObjectsRequest(
-        parent=_collection_path(),
+        parent=ACTIVE_COLLECTION.collection_id,
         searches=[
             vectorsearch_v1beta.Search(
                 vector_search=vectorsearch_v1beta.VectorSearch(
@@ -298,7 +283,7 @@ def _image_similarity_collection_search(image: bytes) -> tuple[list[dict], float
     embedding, embed_ms = _generate_query_embedding(image=image)
     search_started_at = perf_counter()
     request = vectorsearch_v1beta.SearchDataObjectsRequest(
-        parent=_collection_path(),
+        parent=ACTIVE_COLLECTION.collection_id,
         vector_search=vectorsearch_v1beta.VectorSearch(
             search_field=ACTIVE_COLLECTION.image_vector_field,
             vector=vectorsearch_v1beta.DenseVector(values=embedding),
@@ -348,7 +333,7 @@ def _rank_results(query: str, results: list[dict]) -> list[dict]:
 
 def _get_item_details(item_id: str) -> dict | None:
     """Fetch item details from the collection by ID."""
-    name = f"{_collection_path()}/dataObjects/{item_id}"
+    name = f"{ACTIVE_COLLECTION.collection_id}/dataObjects/{item_id}"
     try:
         obj = data_client.get_data_object(
             vectorsearch_v1beta.GetDataObjectRequest(name=name)
