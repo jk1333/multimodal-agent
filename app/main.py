@@ -622,13 +622,18 @@ RUNNER = Runner(app_name=APP_NAME, agent=agent, session_service=SESSION_SERVICE)
 RUN_CONFIG = RunConfig(
     streaming_mode=StreamingMode.BIDI,
     response_modalities=["AUDIO"],
-    proactivity=types.ProactivityConfig(
-        proactive_audio=True
-    ),
     speech_config=types.SpeechConfig(
         language_code="ko-KR",
+        voice_config=types.VoiceConfig(
+            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                voice_name="Kore"
+            )
+        )
     ),
-    # Options for GEAP
+    # Options for GEAP / Gemini 2.5 Flash Live
+    #proactivity=types.ProactivityConfig(
+    #    proactive_audio=True
+    #),
     #input_audio_transcription=types.AudioTranscriptionConfig(
     #  language_codes=['ko-KR', 'en-US']
     #),
