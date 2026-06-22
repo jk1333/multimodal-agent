@@ -793,6 +793,7 @@ function connectImageTile() {
       return;
     }
     if (msg.kind === "recommended") {
+      closePopup();
       recommendedTileItems = msg.items ?? [];
       renderTileItems(recommendedTileItems, "recommended");
     }
@@ -818,6 +819,7 @@ document.getElementById("popup-backdrop").addEventListener("click", closePopup);
 function closePopup() {
   itemPopup.classList.remove("visible");
   itemPopup.classList.remove("active");
+  tilePausedUntil = 0;
 }
 
 async function showItemPopup(itemId) {
