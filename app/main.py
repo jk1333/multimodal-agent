@@ -33,13 +33,11 @@ from pydantic import BaseModel
 from .common import PROJECT_ID, LOCATION, AGENT_MODEL
 from .common import logger
 from .embedding_vector import _collection_search, _rank_results, _get_item_details, _image_similarity_search, EmbeddingRateLimitExceeded
-from .common import SIMILAR_SEARCH_WORKER_COUNT
+from .common import SIMILAR_SEARCH_WORKER_COUNT, MAX_TILE_ITEMS
 from .prompt import AGENT_PROMPT
 
 APP_NAME = "lens-mosaic-hosted"
 STATIC_DIR = Path(__file__).parent / "static"
-
-MAX_TILE_ITEMS = 64
 
 def _ignore_normal_live_close(record: logging.LogRecord) -> bool:
     exc = record.exc_info[1] if record.exc_info else None

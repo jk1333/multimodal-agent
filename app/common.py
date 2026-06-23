@@ -22,8 +22,9 @@ AGENT_MODEL = "gemini-3.1-flash-live-preview"
 
 #For Vector Search 2.0
 LOCATION = "asia-southeast1"
-#COLLECTION_ID = f"projects/{PROJECT_ID}/locations/{LOCATION}/collections/compact-amazon-product-dataset-image-text-768"
-COLLECTION_ID = "projects/sandbox-373102/locations/asia-southeast1/collections/amazon-product-dataset-image-text-768-all"
+COLLECTION_ID = f"projects/{PROJECT_ID}/locations/{LOCATION}/collections/amazon-product-768-compact"
+
+MAX_TILE_ITEMS = 64
 
 def _env_flag(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
