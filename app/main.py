@@ -9,10 +9,8 @@ import asyncio
 import base64
 import json
 import logging
-import queue
 import threading
 
-from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
 
@@ -22,9 +20,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from google.adk.agents import Agent
 from google.adk.agents.live_request_queue import LiveRequestQueue
-from google.adk.agents.run_config import RunConfig, StreamingMode, ToolThreadPoolConfig
+from google.adk.agents.run_config import RunConfig, StreamingMode
 from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
+
 from google.adk.tools import ToolContext, google_search
 from google import genai
 
@@ -35,6 +33,8 @@ from .common import logger
 from .embedding_vector import _collection_search, _rank_results, _get_item_details, _image_similarity_search, EmbeddingRateLimitExceeded
 from .common import SIMILAR_SEARCH_WORKER_COUNT, MAX_TILE_ITEMS
 from .prompt import AGENT_PROMPT
+from .session import SESSION_SERVICE, SEARCH_REQUEST_QUEUE, SESSION_STATES
+from .session import SessionState, cleanup, session_state_for
 
 APP_NAME = "lens-mosaic-hosted"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -101,117 +101,8 @@ class FindItemsTestResponse(BaseModel):
     latency_ms: float
 
 
-@dataclass
-class SessionState:
-    session_id: str
-    user_id: str | None = None
-    latest_image: bytes | None = None
-    similar: list[dict] = field(default_factory=list)
-    recommended: list[dict] = field(default_factory=list)
-    tile_client: WebSocket | None = None
-    image_version: int = 0
-    search_enqueued: bool = False
-    search_running: bool = False
-    state_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
-
-    def start(self) -> None:
-        should_enqueue = False
-        with self.state_lock:
-            if (
-                self.latest_image is not None
-                and not self.search_running
-                and not self.search_enqueued
-            ):
-                self.search_enqueued = True
-                should_enqueue = True
-        if should_enqueue:
-            SEARCH_REQUEST_QUEUE.put(self.session_id)
-
-    def stop(self) -> None:
-        with self.state_lock:
-            self.search_enqueued = False
-
-    def update_image(self, image: bytes) -> None:
-        should_enqueue = False
-        with self.state_lock:
-            self.latest_image = image
-            self.image_version += 1
-            if not self.search_running and not self.search_enqueued:
-                self.search_enqueued = True
-                should_enqueue = True
-        if should_enqueue:
-            SEARCH_REQUEST_QUEUE.put(self.session_id)
-
-    def begin_search(self) -> tuple[bytes, int] | None:
-        with self.state_lock:
-            self.search_enqueued = False
-            if self.latest_image is None:
-                return None
-            self.search_running = True
-            return self.latest_image, self.image_version
-
-    def finish_search(self, processed_version: int) -> bool:
-        with self.state_lock:
-            self.search_running = False
-            if self.latest_image is None:
-                return False
-            if self.image_version == processed_version or self.search_enqueued:
-                return False
-            self.search_enqueued = True
-            return True
-
-    def should_publish_similar(self) -> bool:
-        with self.state_lock:
-            return self.latest_image is not None
-
-    async def send(self, payload: dict) -> None:
-        ws = self.tile_client
-        if ws is None:
-            return
-        try:
-            await ws.send_json(payload)
-        except Exception:
-            if self.tile_client is ws:
-                self.tile_client = None
-
-    async def snapshot(self, ws: WebSocket) -> None:
-        await ws.send_json(
-            {
-                "kind": "snapshot",
-                "sessionId": self.session_id,
-                "userId": self.user_id,
-                "similarItems": self.similar,
-                "recommendedItems": self.recommended,
-            }
-        )
-
-
-SESSION_STATES: dict[str, SessionState] = {}
-SESSION_SERVICE = InMemorySessionService()
 MAIN_LOOP: asyncio.AbstractEventLoop | None = None
-SEARCH_REQUEST_QUEUE: queue.Queue[str | None] = queue.Queue()
 SEARCH_WORKERS: list[threading.Thread] = []
-
-
-def session_state_for(
-    session_id: str, user_id: str | None = None
-) -> SessionState:
-    state = SESSION_STATES.get(session_id)
-    if state is None:
-        state = SessionState(session_id=session_id, user_id=user_id)
-        SESSION_STATES[session_id] = state
-        return state
-    if user_id is not None:
-        state.user_id = user_id
-    return state
-
-
-def cleanup(session_id: str, session: SessionState) -> None:
-    if session.tile_client is not None or session.user_id is not None:
-        return
-    session.stop()
-    SESSION_STATES.pop(session_id, None)
-    logger.info("Cleaned up session state for %s", session_id)
 
 
 def search_text_queries_sync(queries: list[str], ranking_query: str) -> list[dict]:
@@ -265,7 +156,6 @@ async def _publish_similar_results(
             "items": session.similar,
         }
     )
-
 
 async def _publish_recommended_results(session: SessionState) -> None:
     await session.send(
