@@ -13,6 +13,7 @@ const videoEl = document.getElementById("camera");
 const canvasEl = document.getElementById("canvas");
 const AGENT_VISION_SEND_MS = 1000;
 const CAMERA_FRAME_WIDTH = 320;
+const RECOMMEND_TILE_POPUP_DURATION = 15000;
 
 const imageServer = "https://thumbnail.aidemo.dev"
 //const imageServer = "https://storage.googleapis.com/jk-amazon-products-thumbnail"
@@ -226,6 +227,7 @@ function sendText() {
   ws.send(JSON.stringify({ type: "text", text }));
   addMessage("you", text);
   textInput.value = "";
+  textInput.blur();
 }
 
 textInput.addEventListener("keydown", (e) => {
@@ -823,7 +825,7 @@ function closePopup() {
 }
 
 async function showItemPopup(itemId) {
-  tilePausedUntil = Date.now() + 10000;
+  tilePausedUntil = Date.now() + RECOMMEND_TILE_POPUP_DURATION;
   itemPopup.classList.add("active");
   itemPopup.classList.remove("visible");
   try {
