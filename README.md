@@ -1,7 +1,7 @@
 # Gemini Live, Gemini Embedding 2 및 Vector Search 2.0 를 이용한 쇼핑 에이전트
 -   https://github.com/jk1333/multimodal-agent
 
-본 예제는 ['LensMosaic'](https://github.com/kazunori279/lens-mosaic/tree/main)를 기반으로 합니다.
+본 예제는 ['LensMosaic'](https://github.com/kazunori279/lens-mosaic/tree/main) 예제를 기반으로 합니다.
 
 상품 데이터는 ['Amazon Berkeley Objects'](https://amazon-berkeley-objects.s3.amazonaws.com/index.html)를 이용합니다.
 
@@ -22,6 +22,7 @@ multimodal-agent/
 ├── products_data.ipynb         # Products data pre processor
 ├── vs2_indexer.ipynb           # Products data indexer for Vector Search 2
 ├── qr.py                       # QR code generator
+├── download_agent_card.py      # Utility for downloading agent card
 ├── Dockerfile                  # Development commands
 └── pyproject.toml              # Project dependencies
 ```
@@ -48,6 +49,11 @@ git clone https://github.com/jk1333/multimodal-agent
 
 #### 4. `첫번째 셀`을 선택 후 (Ctrl + Enter 혹은 메뉴의 Run -> Run Selected Cell) 실행 후 완료될 때 까지 기다립니다. 커널 재시작 팝업이 뜬 이후 `두번째 셀`을 선택 후 Run -> Run Selected Cell and All Below 를 실행합니다.
 
+아래 명령어를 Google Cloud console 에서 실행하면 Long running job 의 상태를 확인할 수 있습니다.
+```
+gcloud vector-search operations list --location=asia-southeast1
+```
+
 ## 📍 실습 Part 2
 
 #### 5. 아래의 명령어를 이용해 Agent 를 Cloud Run 에 배포합니다.
@@ -66,3 +72,24 @@ python qr.py -------CLOUD RUN URL-------
 ```
 
 #### 8. 생성된 my_qrcode.png 파일을 연 후 모바일의 카메라로 인식하여 Agent를 실행합니다.
+
+## 📍 실습 Part 4
+
+#### 9. A2A 를 위한 Agent Card를 생성합니다.
+```
+python download_agent_card.py -------CLOUD RUN URL-------
+```
+
+#### 10. 생성된 agent-card.json 파일을 로컬 PC에 다운로드 후 CLOUD SHELL 환경으로 업로드 합니다.
+
+#### 11. 다음의 명령어를 이용해 Agent 를 Agent Registry에 등록합니다.
+```
+gcloud alpha agent-registry services create lens-mosaic --location=global --display-name="LensMosaic" --agent-spec-type=a2a-agent-card --agent-spec-content=agent-card.json
+```
+
+#### 12. 다음의 명령어를 이용해 등록된 Agent가 검색되는지 확인합니다.
+```
+gcloud alpha agent-registry agents search --location=global --search-string="쇼핑"
+```
+
+## 🏁 Qwiklab 실습 완료!

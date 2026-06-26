@@ -12,7 +12,8 @@ dependencies = [
     "google-cloud-discoveryengine>=0.13.12,<0.14.0",
     "google-cloud-vectorsearch>=0.7.0",
     "google-cloud-aiplatform",
-    "google-genai"
+    "google-genai",
+    "google-adk[a2a]"
 ]
 
 [build-system]

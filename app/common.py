@@ -23,6 +23,7 @@ AGENT_MODEL = "gemini-3.1-flash-live-preview"
 #For Vector Search 2.0
 LOCATION = "asia-southeast1"
 COLLECTION_ID = f"projects/{PROJECT_ID}/locations/{LOCATION}/collections/amazon-product-768-compact"
+#COLLECTION_ID = "projects/{PROJECT_ID}/locations/{LOCATION}/collections/amazon-product-768-compact-prebuilt"
 
 MAX_TILE_ITEMS = 64
 
@@ -55,3 +56,50 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+def clean_agent_card(data: dict) -> dict:
+    """Ensure that required array fields, objects, and strings are represented as appropriate non-null defaults."""
+    # 1. Top-level list fields
+    for k in ["additionalInterfaces", "security", "signatures"]:
+        if data.get(k) is None:
+            data[k] = []
+            
+    # 2. Top-level string fields
+    for k in ["documentationUrl", "iconUrl"]:
+        if data.get(k) is None:
+            data[k] = ""
+            
+    # 3. Top-level object fields
+    if data.get("securitySchemes") is None:
+        data["securitySchemes"] = {}
+        
+    if data.get("provider") is None or not isinstance(data.get("provider"), dict):
+        data["provider"] = {
+            "organization": "Google Cloud",
+            "url": "https://cloud.google.com"
+        }
+    else:
+        provider = data["provider"]
+        if not provider.get("organization"):
+            provider["organization"] = "Google Cloud"
+        if not provider.get("url"):
+            provider["url"] = "https://cloud.google.com"
+
+            
+    # 4. Capabilities object fields
+    capabilities = data.get("capabilities")
+    if isinstance(capabilities, dict):
+        if capabilities.get("extensions") is None:
+            capabilities["extensions"] = []
+        for k in ["pushNotifications", "stateTransitionHistory", "streaming"]:
+            if capabilities.get(k) is None:
+                capabilities[k] = False
+                
+    # 5. Skills list fields
+    if "skills" in data and isinstance(data["skills"], list):
+        for skill in data["skills"]:
+            if isinstance(skill, dict):
+                for k in ["inputModes", "outputModes", "security", "examples"]:
+                    if skill.get(k) is None:
+                        skill[k] = []
+    return data

@@ -35,6 +35,7 @@ from .common import SIMILAR_SEARCH_WORKER_COUNT, MAX_TILE_ITEMS
 from .prompt import AGENT_PROMPT
 from .session import SESSION_SERVICE, SEARCH_REQUEST_QUEUE, SESSION_STATES
 from .session import SessionState, cleanup, session_state_for
+from .common import clean_agent_card
 
 APP_NAME = "lens-mosaic-hosted"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -364,6 +365,24 @@ async def shutdown() -> None:
 @app.get("/")
 async def root():
     return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/.well-known/agent-card.json")
+@app.get("/agent-card.json")
+@app.get("/agent-card")
+async def get_agent_card():
+    """Retrieve the Agent Card for registry discovery."""
+    try:
+        from google.adk.a2a.utils.agent_card_builder import AgentCardBuilder
+        builder = AgentCardBuilder(agent=agent)
+        card = await builder.build()
+        card_dict = card.model_dump() if hasattr(card, "model_dump") else card.dict()
+        return clean_agent_card(card_dict)
+    except Exception as exc:
+        logger.error("Failed to generate Agent Card: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate Agent Card: {exc}"
+        )
 
 
 @app.post("/search", response_model=list[SearchResult])
