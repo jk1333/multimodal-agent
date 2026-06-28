@@ -20,6 +20,7 @@ if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
 from app import main as app_main
+from app import session as app_session
 
 
 class SearchIntegrationTests(unittest.TestCase):
@@ -30,12 +31,12 @@ class SearchIntegrationTests(unittest.TestCase):
     def tearDown(self) -> None:
         app_main.SESSION_STATES.clear()
         app_main.MAIN_LOOP = None
-
     @contextmanager
     def make_client(self):
         with (
             patch.object(app_main, "_ensure_search_workers", return_value=None),
             patch.object(app_main, "_stop_search_workers", return_value=None),
+            patch.object(app_main, "start_warmup_background", return_value=None),
         ):
             with TestClient(app_main.app) as client:
                 yield client
@@ -141,9 +142,8 @@ class SearchIntegrationTests(unittest.TestCase):
         }
 
         with (
-            patch.object(
-                app_main,
-                "_embed_with_gemini_embedding_2",
+            patch(
+                "app.embedding_vector._embed_with_gemini_embedding_2",
                 return_value=[0.1, 0.2, 0.3],
             ),
             patch.object(
@@ -151,9 +151,8 @@ class SearchIntegrationTests(unittest.TestCase):
                 "batch_search_data_objects",
                 return_value=batch_response,
             ) as batch_search_mock,
-            patch.object(
-                app_main,
-                "_get_item_details",
+            patch(
+                "app.embedding_vector._get_item_details",
                 return_value=hydrated_item,
             ) as get_item_mock,
             patch.object(
@@ -204,9 +203,8 @@ class SearchIntegrationTests(unittest.TestCase):
         )
 
         with (
-            patch.object(
-                app_main,
-                "_embed_with_gemini_embedding_2",
+            patch(
+                "app.embedding_vector._embed_with_gemini_embedding_2",
                 return_value=[0.1, 0.2, 0.3],
             ),
             patch.object(
@@ -600,7 +598,10 @@ class SearchIntegrationTests(unittest.TestCase):
         app_main.SESSION_STATES.clear()
         session = app_main.session_state_for("session-1", "user-1")
         session.tile_client = object()
-        with patch.object(app_main, "SEARCH_REQUEST_QUEUE", search_queue):
+        with (
+            patch.object(app_main, "SEARCH_REQUEST_QUEUE", search_queue),
+            patch.object(app_session, "SEARCH_REQUEST_QUEUE", search_queue),
+        ):
             session.update_image(b"fake-image")
             search_queue.put(None)
 

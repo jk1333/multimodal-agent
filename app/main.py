@@ -26,11 +26,25 @@ from google.adk.runners import Runner
 from google.adk.tools import ToolContext, google_search
 from google import genai
 
+from google.cloud import vectorsearch_v1beta
 from google.genai import types
 from pydantic import BaseModel
 from .common import PROJECT_ID, LOCATION, AGENT_MODEL
 from .common import logger
-from .embedding_vector import _collection_search, _rank_results, _get_item_details, _image_similarity_search, EmbeddingRateLimitExceeded
+from .embedding_vector import (
+    _collection_search,
+    _rank_results,
+    _get_item_details,
+    _image_similarity_search,
+    EmbeddingRateLimitExceeded,
+    ACTIVE_COLLECTION,
+    start_warmup_background,
+    _embed_with_gemini_embedding_2,
+    search_client,
+    data_client,
+    rank_client,
+    SEARCH_TOP_K,
+)
 from .common import SIMILAR_SEARCH_WORKER_COUNT, MAX_TILE_ITEMS
 from .prompt import AGENT_PROMPT
 from .session import SESSION_SERVICE, SEARCH_REQUEST_QUEUE, SESSION_STATES
@@ -39,6 +53,12 @@ from .common import clean_agent_card
 
 APP_NAME = "lens-mosaic-hosted"
 STATIC_DIR = Path(__file__).parent / "static"
+
+TEST_ENDPOINTS_ENABLED = False
+
+def _collection_path() -> str:
+    return ACTIVE_COLLECTION.collection_id
+
 
 def _ignore_normal_live_close(record: logging.LogRecord) -> bool:
     exc = record.exc_info[1] if record.exc_info else None
@@ -353,6 +373,7 @@ async def startup() -> None:
     global MAIN_LOOP
     MAIN_LOOP = asyncio.get_running_loop()
     _ensure_search_workers()
+    start_warmup_background()
 
 
 @app.on_event("shutdown")
@@ -431,6 +452,51 @@ def get_item_for_ui(item_id: str):
 def health():
     return {
         "status": "ok",
+    }
+
+
+@app.post("/test/find_items", response_model=FindItemsTestResponse)
+def find_items_test_endpoint(req: FindItemsTestRequest):
+    if not TEST_ENDPOINTS_ENABLED:
+        raise HTTPException(status_code=404, detail="Test endpoints are disabled")
+    
+    processed_queries = [q.strip() for q in req.queries if q.strip()]
+    processed_ranking_query = req.ranking_query.strip()
+    
+    recommended, latency_ms = _run_find_items_for_session(
+        session_id=req.session_id,
+        user_id=req.user_id,
+        queries=processed_queries,
+        ranking_query=processed_ranking_query,
+        publish=req.publish,
+    )
+    
+    return FindItemsTestResponse(
+        user_id=req.user_id,
+        session_id=req.session_id,
+        item_ids=[item["id"] for item in recommended],
+        item_names=[item["name"] for item in recommended],
+        latency_ms=latency_ms,
+    )
+
+
+@app.post("/test/similar")
+def similar_test_endpoint(req: SimilarSearchTestRequest):
+    if not TEST_ENDPOINTS_ENABLED:
+        raise HTTPException(status_code=404, detail="Test endpoints are disabled")
+    
+    try:
+        image_bytes = base64.b64decode(req.image_b64, validate=True)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="image_b64 must be valid base64") from exc
+        
+    session = session_state_for(req.session_id, req.user_id)
+    session.update_image(image_bytes)
+    
+    return {
+        "status": "accepted",
+        "user_id": req.user_id,
+        "session_id": req.session_id,
     }
 
 

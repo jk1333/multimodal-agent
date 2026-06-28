@@ -107,7 +107,6 @@ def session_state_for(
         state.user_id = user_id
     return state
 
-
 def cleanup(session_id: str, session: SessionState) -> None:
     if session.tile_client is not None or session.user_id is not None:
         return

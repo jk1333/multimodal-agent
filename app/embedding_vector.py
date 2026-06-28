@@ -352,3 +352,37 @@ def _get_item_details(item_id: str) -> dict | None:
         #"url": str(obj.data.get("url", "")),
         #"img_url": str(obj.data.get("img_url", "")),
     }
+
+
+def warmup_clients() -> None:
+    """Warm up the Gemini embedding, Vector Search, and Vertex AI Ranking clients by performing lightweight dummy requests."""
+    logger.info("Starting background warmup of API clients...")
+    started_at = perf_counter()
+    try:
+        # 1. Warm up embedding client and search client via a lightweight collection search
+        # We search with rerank=False to avoid calling rank client during this search
+        _collection_search(text="warmup_query", rerank=False)
+        logger.info("Embedding and Vector Search clients warmed up successfully.")
+    except Exception as exc:
+        logger.warning("Error warming up embedding/search clients: %s", exc)
+
+    try:
+        # 2. Warm up ranking client
+        dummy_results = [{"id": "dummy_warmup_id", "name": "dummy_warmup_name", "description": "dummy_warmup_description", "score": 1.0}]
+        _rank_results(query="warmup", results=dummy_results)
+        logger.info("Ranking client warmed up successfully.")
+    except Exception as exc:
+        logger.warning("Error warming up ranking client: %s", exc)
+
+    elapsed = perf_counter() - started_at
+    logger.info("Background warmup completed in %.1f seconds", elapsed)
+
+
+def start_warmup_background() -> None:
+    """Start the API warmup process in a background daemon thread."""
+    thread = threading.Thread(
+        target=warmup_clients,
+        name="lens-mosaic-warmup-worker",
+        daemon=True,
+    )
+    thread.start()
