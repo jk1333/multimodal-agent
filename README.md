@@ -11,7 +11,7 @@
 
 ```
 multimodal-agent/
-├── app/         # Core agent code
+├── app/                        # Core agent code
 │   ├── main.py                 # Main agent logic
 │   ├── prompt.py               # Prompt definition
 │   ├── common.py               # Configurations
@@ -33,10 +33,12 @@ multimodal-agent/
 
 아래 내용은 Qwiklab 환경을 통해 구성한 Google Cloud의 Vertex AI Workbench에서 실습을 진행하는 방법을 다루고 있습니다.
 
-#### 1. 상단 검색 메뉴에서 'workbench' 를 입력하여 'Workbench' 메뉴를 클릭합니다.
+#### 1. Gemini API Key 확인을 위해 메뉴에서 credential 검색, 기 생성돼 있는 GeminiLabKey 를 확인 후 Show key 를 눌러 값을 복사해 둡니다.
+
+#### 2. 상단 검색 메뉴에서 'workbench' 를 입력하여 'Workbench' 메뉴를 클릭합니다.
 ![image](https://raw.githubusercontent.com/jk1333/handson/main/images/6/1.png)
 
-#### 2. 'Open Jupyterlab' 버튼을 눌러 환경에 접속합니다.
+#### 3. 'Open Jupyterlab' 버튼을 눌러 환경에 접속합니다.
 ![image](https://raw.githubusercontent.com/cheeunlim/agent-engine-lab/main/images/workbench_open.png)
 
 실행된 Jupyterlab 환경에서 Terminal에 진입 후 아래 명령어를 실행해 실습자료를 다운로드 받습니다.
@@ -45,9 +47,9 @@ multimodal-agent/
 git clone https://github.com/jk1333/multimodal-agent
 ```
 
-#### 3. 실습 자료 다운로드가 완료된 후 /multimodal-agent/vs2_indexer.ipynb 를 클릭합니다.
+#### 4. 실습 자료 다운로드가 완료된 후 /multimodal-agent/vs2_indexer.ipynb 를 클릭합니다.
 
-#### 4. `첫번째 셀`을 선택 후 (Ctrl + Enter 혹은 메뉴의 Run -> Run Selected Cell) 실행 후 완료될 때 까지 기다립니다. 커널 재시작 팝업이 뜬 이후 `두번째 셀`을 선택 후 Run -> Run Selected Cell and All Below 를 실행합니다.
+#### 5. `첫번째 셀`을 선택 후 (Ctrl + Enter 혹은 메뉴의 Run -> Run Selected Cell) 실행 후 완료될 때 까지 기다립니다. 커널 재시작 팝업이 뜬 이후 `두번째 셀`을 선택 후 Run -> Run Selected Cell and All Below 를 실행합니다.
 
 아래 명령어를 Google Cloud console 에서 실행하면 Long running job 의 상태를 확인할 수 있습니다.
 ```
@@ -56,31 +58,29 @@ gcloud vector-search operations list --location=asia-southeast1
 
 ## 📍 실습 Part 2
 
-#### 5. 아래의 명령어를 이용해 Agent 를 Cloud Run 에 배포합니다.
+#### 6. 아래의 명령어를 이용해 Agent 를 Cloud Run 에 배포합니다.
 ```
 cd multimodal-agent
 gcloud run deploy lens-mosaic --source . --region "asia-southeast1" --concurrency 500 --cpu 2 --memory 4Gi --timeout 3600 --min-instances 1 --max-instances 1 --execution-environment=gen2 --set-env-vars GEMINI_API_KEY="------------------GEMINI_API_KEY-----------------------"
 ```
 
-#### 6. Cloud Run 이 배포되면 메뉴에서 cloud run 검색, 좌측 Services 클릭, lens-mosaic 클릭 후 Security 탭에서 Authentication -> Allow public access 를 클릭 후 Save를 클릭합니다.
+#### 7. Cloud Run 이 배포되면 메뉴에서 cloud run 검색, 좌측 Services 클릭, lens-mosaic 클릭 후 Security 탭에서 Authentication -> Allow public access 를 클릭 후 Save를 클릭합니다.
 
 ## 📍 실습 Part 3
-#### 7. 열려있는 Cloud Run 의 lens-mosaic 서비스에서 URL 의 주소값을 복사합니다. (URL 끝에 복사 버튼을 누르면 됩니다.) 복사 후 아래의 명령어에 -------CLOUD RUN URL------- 을 교체 후 실행합니다.
+#### 8. 열려있는 Cloud Run 의 lens-mosaic 서비스에서 URL 의 주소값을 복사합니다. (URL 끝에 복사 버튼을 누르면 됩니다.) 복사 후 아래의 명령어에 -------CLOUD RUN URL------- 을 교체 후 실행합니다.
 ```
 pip install qrcode
 python qr.py -------CLOUD RUN URL-------
 ```
 
-#### 8. 생성된 my_qrcode.png 파일을 연 후 모바일의 카메라로 인식하여 Agent를 실행합니다.
+#### 9. 생성된 my_qrcode.png 파일을 연 후 모바일의 카메라로 인식하여 Agent를 실행합니다.
 
 ## 📍 실습 Part 4
 
-#### 9. A2A 를 위한 Agent Card를 생성합니다.
+#### 10. A2A 를 위한 Agent Card를 생성합니다.
 ```
 python download_agent_card.py -------CLOUD RUN URL-------
 ```
-
-#### 10. 생성된 agent-card.json 파일을 로컬 PC에 다운로드 후 CLOUD SHELL 환경으로 업로드 합니다.
 
 #### 11. 다음의 명령어를 이용해 Agent 를 Agent Registry에 등록합니다.
 ```
