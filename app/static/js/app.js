@@ -120,24 +120,27 @@ function handleEvent(event) {
     } else {
       currentInputText += event.inputTranscription.text;
     }
-    currentInputEl.querySelector(".text").textContent = cleanCJKSpaces(currentInputText);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    const textEl = currentInputEl.querySelector(".text");
+    updateTextWithTypewriter(textEl, currentInputText, event.inputTranscription.finished);
   }
 
   // Handle output transcription (agent's spoken words)
   if (event.outputTranscription && shouldRenderTextChunk(event.outputTranscription)) {
+    if (!currentAgentEl) {
+      currentAgentEl = addMessage("agent", "");
+    }
+    
     if (event.outputTranscription.finished) {
       hasFinalOutputTranscription = true;
-      if (!currentAgentEl) {
-        currentAgentEl = addMessage("agent", "");
-      }
-      // Stream visible text from content.parts and use the finished transcript
-      // as the final replacement once speech generation is complete.
       currentAgentText = event.outputTranscription.text;
-      currentAgentEl.querySelector(".text").textContent = cleanCJKSpaces(currentAgentText);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+    } else {
+      currentAgentText += event.outputTranscription.text;
     }
+    
+    const textEl = currentAgentEl.querySelector(".text");
+    updateTextWithTypewriter(textEl, currentAgentText, event.outputTranscription.finished);
   }
+
 
   // Handle content events (text or audio)
   const content = event.content;
@@ -147,6 +150,15 @@ function handleEvent(event) {
       if (part.inlineData) {
         const bytes = base64ToBytes(part.inlineData.data);
         if (player) player.play(bytes);
+      }
+      // Text response (fallback for non-audio or text-only responses)
+      if (part.text) {
+        if (!currentAgentEl) {
+          currentAgentEl = addMessage("agent", "");
+        }
+        currentAgentText += part.text;
+        currentAgentEl.querySelector(".text").textContent = cleanCJKSpaces(currentAgentText);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
       }
     }
   }
@@ -166,6 +178,54 @@ function cleanCJKSpaces(text) {
     /(?<=[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf])\s+(?=[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf])/g,
     "",
   );
+}
+
+const activeTypewriters = new Map();
+
+function runTypewriter(element, targetText, speedMs = 35) {
+  // Clear any existing typewriter for this element
+  if (activeTypewriters.has(element)) {
+    clearInterval(activeTypewriters.get(element));
+  }
+
+  const cleanedText = cleanCJKSpaces(targetText);
+  let currentIndex = 0;
+  element.textContent = "";
+
+  const interval = setInterval(() => {
+    if (currentIndex < cleanedText.length) {
+      element.textContent += cleanedText.charAt(currentIndex);
+      currentIndex++;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    } else {
+      clearInterval(interval);
+      activeTypewriters.delete(element);
+    }
+  }, speedMs);
+
+  activeTypewriters.set(element, interval);
+}
+
+function updateTextWithTypewriter(element, targetText, isFinished) {
+  const cleanedTarget = cleanCJKSpaces(targetText);
+  
+  if (!isFinished) {
+    // If we are actively streaming, just update immediately to prevent lag.
+    element.textContent = cleanedTarget;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return;
+  }
+  
+  // When finished, check if we need to run typewriter animation.
+  // If the element has 0 characters, it means we didn't receive live stream chunks,
+  // so we animate it! Otherwise, we just set the final text immediately.
+  const currentLength = element.textContent.length;
+  if (currentLength === 0) {
+    runTypewriter(element, cleanedTarget);
+  } else {
+    element.textContent = cleanedTarget;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
 }
 
 function addMessage(role, text) {

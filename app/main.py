@@ -602,18 +602,16 @@ RUN_CONFIG = RunConfig(
                 voice_name="Kore"
             )
         )
+
     ),
-    # Options for GEAP / Gemini 2.5 Flash Live
-    #proactivity=types.ProactivityConfig(
-    #    proactive_audio=True
-    #),
     #input_audio_transcription=types.AudioTranscriptionConfig(
-    #  language_codes=['ko-KR', 'en-US']
+    #    language_codes=['ko-KR', 'en-US']
     #),
     #output_audio_transcription=types.AudioTranscriptionConfig(
     #    language_codes=['ko-KR', 'en-US']
     #),
 )
+
 
 async def agent_to_client(
     ws: WebSocket, user_id: str, session_id: str, queue: LiveRequestQueue
