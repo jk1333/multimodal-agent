@@ -26,7 +26,6 @@ from google.adk.runners import Runner
 from google.adk.tools import ToolContext, google_search
 from google import genai
 
-from google.cloud import vectorsearch_v1beta
 from google.genai import types
 from pydantic import BaseModel
 from .common import PROJECT_ID, LOCATION, AGENT_MODEL
@@ -39,11 +38,6 @@ from .embedding_vector import (
     EmbeddingRateLimitExceeded,
     ACTIVE_COLLECTION,
     start_warmup_background,
-    _embed_with_gemini_embedding_2,
-    search_client,
-    data_client,
-    rank_client,
-    SEARCH_TOP_K,
 )
 from .common import SIMILAR_SEARCH_WORKER_COUNT, MAX_TILE_ITEMS
 from .prompt import AGENT_PROMPT
@@ -58,7 +52,6 @@ TEST_ENDPOINTS_ENABLED = False
 
 def _collection_path() -> str:
     return ACTIVE_COLLECTION.collection_id
-
 
 def _ignore_normal_live_close(record: logging.LogRecord) -> bool:
     exc = record.exc_info[1] if record.exc_info else None
