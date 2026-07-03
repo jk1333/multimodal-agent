@@ -49,22 +49,22 @@ git clone https://github.com/jk1333/multimodal-agent
 
 #### 4. 실습 자료 다운로드가 완료된 후 /multimodal-agent/vs2_indexer.ipynb 를 클릭합니다.
 
-#### 5. `첫번째 셀`을 선택 후 (Ctrl + Enter 혹은 메뉴의 Run -> Run Selected Cell) 실행 후 완료될 때 까지 기다립니다. 커널 재시작 팝업이 뜬 이후 `두번째 셀`을 선택 후 Run -> Run Selected Cell and All Below 를 실행합니다.
+#### 5. `첫번째 셀`을 선택 후 (Ctrl + Enter 혹은 메뉴의 Run -> Run Selected Cell) 실행 후 완료될 때 까지 기다립니다. 커널 재시작 팝업이 뜬 이후 Run -> Run All Cells 를 실행합니다.
 
-아래 명령어를 Google Cloud console 에서 실행하면 Long running job 의 상태를 확인할 수 있습니다.
+아래 명령어를 Terminal 에서 실행하면 Long running job 의 상태를 확인할 수 있습니다.
 ```
 gcloud vector-search operations list --location=asia-southeast1
 ```
 
 ## 📍 실습 Part 2
 
-#### 6. 아래의 명령어를 이용해 Agent 를 Cloud Run 에 배포합니다.
+#### 6. 아래의 명령어를 이용해 Agent 를 Cloud Run 에 배포합니다. (Y/n) 선택이 나오면 엔터를 입력 합니다.
 ```
 cd multimodal-agent
 gcloud run deploy lens-mosaic --source . --region "asia-southeast1" --concurrency 500 --cpu 2 --memory 4Gi --timeout 3600 --min-instances 1 --max-instances 1 --execution-environment=gen2 --set-env-vars GEMINI_API_KEY="------------------GEMINI_API_KEY-----------------------"
 ```
 
-#### 7. Cloud Run 이 배포되면 메뉴에서 cloud run 검색, 좌측 Services 클릭, lens-mosaic 클릭 후 Security 탭에서 Authentication -> Allow public access 를 클릭 후 Save를 클릭합니다.
+#### 7. Cloud Run 이 배포되면 메뉴에서 cloud run 검색, lens-mosaic 클릭 후 Security 탭에서 Authentication -> Allow public access 를 클릭 후 Save를 클릭합니다.
 
 ## 📍 실습 Part 3
 #### 8. 열려있는 Cloud Run 의 lens-mosaic 서비스에서 URL 의 주소값을 복사합니다. (URL 끝에 복사 버튼을 누르면 됩니다.) 복사 후 아래의 명령어에 -------CLOUD RUN URL------- 을 교체 후 실행합니다.
