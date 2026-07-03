@@ -21,7 +21,7 @@ IMAGE_SERVER = "https://thumbnail.aidemo.dev"
 AGENT_MODEL = "gemini-3.1-flash-live-preview"
 
 #For Vector Search 2.0
-LOCATION = "asia-southeast1"
+LOCATION = "asia-northeast1"
 COLLECTION_ID = f"projects/{PROJECT_ID}/locations/{LOCATION}/collections/amazon-product-768-compact"
 #COLLECTION_ID = "projects/{PROJECT_ID}/locations/{LOCATION}/collections/amazon-product-768-compact-prebuilt"
 
