@@ -178,23 +178,37 @@ def _collection_search(
     """Search the active Gemini Embedding collection by text or image."""
     started_at = perf_counter()
     source = "text" if text is not None else "image"
-    results, embed_ms, batch_search_ms, rerank_ms = (
-        _hybrid_collection_search(text=text, image=image, rerank=rerank)
-    )
+    results, embed_ms, search_ms = _text_similarity_collection_search(text=text)
     total_ms = (perf_counter() - started_at) * 1000
     logger.info(
         "Search latency: model=%s source=%s rerank=%s embed_ms=%.1f "
-        "batch_search_ms=%.1f rerank_ms=%.1f total_ms=%.1f results=%d",
+        "search_ms=%.1f total_ms=%.1f results=%d",
         ACTIVE_COLLECTION.embedding_model,
         source,
         rerank,
         embed_ms,
-        batch_search_ms,
-        rerank_ms,
+        search_ms,
         total_ms,
         len(results),
     )
     return results
+    #results, embed_ms, batch_search_ms, rerank_ms = (
+    #    _hybrid_collection_search(text=text, image=image, rerank=rerank)
+    #)
+    #total_ms = (perf_counter() - started_at) * 1000
+    #logger.info(
+    #    "Search latency: model=%s source=%s rerank=%s embed_ms=%.1f "
+    #    "batch_search_ms=%.1f rerank_ms=%.1f total_ms=%.1f results=%d",
+    #    ACTIVE_COLLECTION.embedding_model,
+    #    source,
+    #    rerank,
+    #    embed_ms,
+    #    batch_search_ms,
+    #    rerank_ms,
+    #    total_ms,
+    #    len(results),
+    #)
+    #return results
 
 
 def _image_similarity_search(image: bytes) -> list[dict]:
@@ -303,6 +317,31 @@ def _image_similarity_collection_search(image: bytes) -> tuple[list[dict], float
     return results, embed_ms, search_ms
 
 
+def _text_similarity_collection_search(text: str) -> tuple[list[dict], float, float]:
+    """Search Gemini Embedding 2 collections with the image embedding field only."""
+    embedding, embed_ms = _generate_query_embedding(text=text)
+    search_started_at = perf_counter()
+    request = vectorsearch_v1beta.SearchDataObjectsRequest(
+        parent=ACTIVE_COLLECTION.collection_id,
+        vector_search=vectorsearch_v1beta.VectorSearch(
+            search_field=ACTIVE_COLLECTION.text_vector_field,
+            vector=vectorsearch_v1beta.DenseVector(values=embedding),
+            top_k=SEARCH_TOP_K,
+            output_fields=vectorsearch_v1beta.OutputFields(
+                data_fields=["name", "description"]
+            ),
+        ),
+    )
+    response = search_client.search_data_objects(request)
+    search_ms = (perf_counter() - search_started_at) * 1000
+    results: list[dict] = []
+    for result in response.results:
+        item = _search_result_to_dict(result)
+        if item is not None:
+            results.append(item)
+    return results, embed_ms, search_ms
+
+
 def _rank_results(query: str, results: list[dict]) -> list[dict]:
     """Re-rank search results using the Vertex AI Ranking API."""
     if not results or not query:
@@ -385,4 +424,4 @@ def start_warmup_background() -> None:
         name="lens-mosaic-warmup-worker",
         daemon=True,
     )
-    thread.start()
+    thread.start()
