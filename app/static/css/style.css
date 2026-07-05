@@ -528,7 +528,7 @@ footer a:hover {
 
 main:has(#video-container.active) {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(190px, 31vw, 320px);
+  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
   grid-template-rows: minmax(180px, 30vh) minmax(0, 1fr);
 }
 
