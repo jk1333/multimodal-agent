@@ -13,7 +13,7 @@ const videoEl = document.getElementById("camera");
 const canvasEl = document.getElementById("canvas");
 const AGENT_VISION_SEND_MS = 1000;
 const CAMERA_FRAME_WIDTH = 320;
-const RECOMMEND_TILE_POPUP_DURATION = 15000;
+const ITEM_POPUP_DURATION = 10000;
 
 const imageServer = "https://thumbnail.aidemo.dev"
 //const imageServer = "https://storage.googleapis.com/jk-amazon-products-thumbnail"
@@ -399,9 +399,9 @@ async function flipCamera() {
 // --- Image Tile WebSocket ---
 
 const imageTileEl = document.getElementById("image-tile");
-const TILE_FADE_MS = 1333;
+const TILE_FADE_MS = 666;
 const RECOMMENDED_AUTO_CLOSE_MS = 30000;
-const SIMILAR_TILE_STALE_MS = 2000;
+const SIMILAR_TILE_STALE_MS = 1000;
 
 function getGridSize() {
   const size = Number.parseInt(
@@ -885,7 +885,7 @@ function closePopup() {
 }
 
 async function showItemPopup(itemId) {
-  tilePausedUntil = Date.now() + RECOMMEND_TILE_POPUP_DURATION;
+  tilePausedUntil = Date.now() + ITEM_POPUP_DURATION;
   itemPopup.classList.add("active");
   itemPopup.classList.remove("visible");
   try {

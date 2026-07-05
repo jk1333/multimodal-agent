@@ -592,7 +592,7 @@ RUN_CONFIG = RunConfig(
         language_code="ko-KR",
         voice_config=types.VoiceConfig(
             prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                voice_name="Kore"
+                voice_name="Alnilam"
             )
         )
 

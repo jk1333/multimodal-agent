@@ -181,6 +181,7 @@ main {
   padding: 0;
   font-size: 28px;
   line-height: 1;
+  color:red;
 }
 
 #close-recommended-btn.visible {
