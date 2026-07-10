@@ -181,11 +181,11 @@ def _collection_search(
     results, embed_ms, search_ms = _text_similarity_collection_search(text=text)
     total_ms = (perf_counter() - started_at) * 1000
     logger.info(
-        "Search latency: model=%s source=%s rerank=%s embed_ms=%.1f "
+        "Search latency: model=%s source=%s query=%s embed_ms=%.1f "
         "search_ms=%.1f total_ms=%.1f results=%d",
         ACTIVE_COLLECTION.embedding_model,
         source,
-        rerank,
+        text,
         embed_ms,
         search_ms,
         total_ms,
