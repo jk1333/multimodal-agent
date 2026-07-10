@@ -21,6 +21,7 @@ const imageServer = "https://thumbnail.aidemo.dev"
 
 let ws = null;
 let micOn = false;
+let silenceRemainingMs = 0;
 let camOn = false;
 let recorder = null;
 let player = null;
@@ -316,13 +317,26 @@ async function startMic() {
 
   if (!recorder) {
     recorder = new AudioRecorder((pcmBuffer) => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(new Uint8Array(pcmBuffer));
+      if (micOn) {
+        // Send real PCM data when micOn is true
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(new Uint8Array(pcmBuffer));
+        }
+      } else {
+        // Send zero-filled silent data for a short period after muting to trigger server-side VAD
+        if (silenceRemainingMs > 0) {
+          const chunkDurationMs = (pcmBuffer.byteLength / 2) / 16000 * 1000;
+          silenceRemainingMs -= chunkDurationMs;
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(new Uint8Array(pcmBuffer.byteLength));
+          }
+        }
       }
     });
   }
   await recorder.start();
-  micOn = true;
+  // Keep hardware active, but default software toggle state is OFF (muted)
+  micOn = false;
   updateMicToggleBtnUI();
 }
 
@@ -338,11 +352,11 @@ function stopMic() {
 async function toggleMic() {
   if (!hasStartedExperience) return;
   try {
-    if (micOn) {
-      stopMic();
-    } else {
-      await startMic();
+    micOn = !micOn;
+    if (!micOn) {
+      silenceRemainingMs = 800; // Send 0.800 seconds of trailing silence to let server recognize the end of speech
     }
+    updateMicToggleBtnUI();
   } catch (e) {
     console.error("Mic toggle error:", e);
     addSystemMessage("Microphone toggle error: " + e.message);
@@ -968,9 +982,8 @@ startBtn.addEventListener("click", async () => {
   updateChatEmptyState();
   try {
     await startCamera();
-    await initAudioPlayer();
+    await startMic(); // Request and start hardware mic immediately, with soft-toggle off by default
     micToggleBtn.disabled = false;
-    updateMicToggleBtnUI();
     updateRecommendedControls();
   } catch (e) {
     console.error("Start error:", e);
