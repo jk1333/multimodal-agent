@@ -41,18 +41,27 @@
       </div>
 
       <div id="chat">
-        <div id="chat-empty-state">
-          <p>제가 직접 카메라를 보고, 목소리를 듣고, 웹을 검색해서 조건에 딱 맞는 상품을 찾아드릴 수 있어요.</p>
-          <div id="chat-empty-examples">
-            <button class="suggestion-btn" type="button" data-suggestion="무엇이 보이나요?">무엇이 보이나요?</button>
-            <button class="suggestion-btn" type="button" data-suggestion="이것과 유사한 제품을 찾아주세요.">이것과 유사한 제품을 찾아주세요.</button>
-            <button class="suggestion-btn" type="button" data-suggestion="이것과 잘 어울리는 것은 무엇일까요?">이것과 잘 어울리는 것은 무엇일까요?</button>
-            <button class="suggestion-btn" type="button" data-suggestion="가족을 위해 어울리는 선물을 찾아주세요.">가족을 위해 어울리는 선물을 찾아주세요.</button>
+        <div id="messages">
+          <div id="chat-empty-state">
+            <p>제가 직접 카메라를 보고, 목소리를 듣고, 웹을 검색해서 조건에 딱 맞는 상품을 찾아드릴 수 있어요.</p>
+            <div id="chat-empty-examples">
+              <button class="suggestion-btn" type="button" data-suggestion="이것과 유사한 제품을 찾아주세요.">이것과 유사한 제품을 찾아주세요.</button>
+              <button class="suggestion-btn" type="button" data-suggestion="이것과 잘 어울리는 것은 무엇일까요?">이것과 잘 어울리는 것은 무엇일까요?</button>
+              <button class="suggestion-btn" type="button" data-suggestion="가족을 위해 어울리는 선물을 찾아주세요.">가족을 위해 어울리는 선물을 찾아주세요.</button>
+            </div>
           </div>
         </div>
-        <div id="messages"></div>
         <div id="input-bar">
           <input type="text" id="text-input" placeholder="Type a message..." autocomplete="off">
+          <button id="mic-toggle-btn" type="button" class="mic-toggle-btn" disabled title="체험 시작 후 활성화됩니다">
+            <span class="mic-status-container">
+              <span class="mic-icon-dot"></span>
+              <svg class="mic-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+              </svg>
+            </span>
+            <span class="mic-text">음성 인식 꺼짐</span>
+          </button>
         </div>
       </div>
     </main>

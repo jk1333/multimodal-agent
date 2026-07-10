@@ -5,6 +5,7 @@ const statusEl = document.getElementById("status");
 const messagesEl = document.getElementById("messages");
 const chatEmptyStateEl = document.getElementById("chat-empty-state");
 const textInput = document.getElementById("text-input");
+const micToggleBtn = document.getElementById("mic-toggle-btn");
 const startBtn = document.getElementById("start-btn");
 const closeRecommendedBtn = document.getElementById("close-recommended-btn");
 const flipCameraBtn = document.getElementById("flip-camera-btn");
@@ -241,7 +242,7 @@ function addMessage(role, text) {
 function updateChatEmptyState() {
   if (!chatEmptyStateEl) return;
   chatEmptyStateEl.classList.toggle("prestart", !hasStartedExperience);
-  chatEmptyStateEl.classList.toggle("hidden", hasStartedExperience && messagesEl.childElementCount > 0);
+  chatEmptyStateEl.classList.toggle("hidden", hasStartedExperience && messagesEl.querySelectorAll(".message").length > 0);
 }
 
 function escapeHtml(s) {
@@ -303,17 +304,64 @@ document.querySelectorAll(".suggestion-btn").forEach((button) => {
 
 // --- Mic ---
 
-async function startMic() {
-  player = new AudioPlayer();
-  await player.init();
+async function initAudioPlayer() {
+  if (!player) {
+    player = new AudioPlayer();
+    await player.init();
+  }
+}
 
-  recorder = new AudioRecorder((pcmBuffer) => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(new Uint8Array(pcmBuffer));
-    }
-  });
+async function startMic() {
+  await initAudioPlayer();
+
+  if (!recorder) {
+    recorder = new AudioRecorder((pcmBuffer) => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(new Uint8Array(pcmBuffer));
+      }
+    });
+  }
   await recorder.start();
   micOn = true;
+  updateMicToggleBtnUI();
+}
+
+function stopMic() {
+  if (recorder) {
+    recorder.stop();
+    recorder = null;
+  }
+  micOn = false;
+  updateMicToggleBtnUI();
+}
+
+async function toggleMic() {
+  if (!hasStartedExperience) return;
+  try {
+    if (micOn) {
+      stopMic();
+    } else {
+      await startMic();
+    }
+  } catch (e) {
+    console.error("Mic toggle error:", e);
+    addSystemMessage("Microphone toggle error: " + e.message);
+  }
+}
+
+function updateMicToggleBtnUI() {
+  if (!micToggleBtn) return;
+  if (micOn) {
+    micToggleBtn.classList.add("active");
+    const textEl = micToggleBtn.querySelector(".mic-text");
+    if (textEl) textEl.textContent = "음성 인식 켜짐";
+    micToggleBtn.title = "음성 입력 비활성화";
+  } else {
+    micToggleBtn.classList.remove("active");
+    const textEl = micToggleBtn.querySelector(".mic-text");
+    if (textEl) textEl.textContent = "음성 인식 꺼짐";
+    micToggleBtn.title = "음성 입력 활성화";
+  }
 }
 
 // --- Camera ---
@@ -920,12 +968,18 @@ startBtn.addEventListener("click", async () => {
   updateChatEmptyState();
   try {
     await startCamera();
-    await startMic();
+    await initAudioPlayer();
+    micToggleBtn.disabled = false;
+    updateMicToggleBtnUI();
     updateRecommendedControls();
   } catch (e) {
     console.error("Start error:", e);
     addSystemMessage("Start error: " + e.message);
   }
+});
+
+micToggleBtn.addEventListener("click", async () => {
+  await toggleMic();
 });
 
 closeRecommendedBtn.addEventListener("click", () => {
