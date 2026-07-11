@@ -566,7 +566,8 @@ async def find_items(
     Yields:
         A comma-separated string of top matched item names, or "No items found".
     """
-    recommended, _ = _run_find_items_for_session(
+    recommended, _ = await asyncio.to_thread(
+        _run_find_items_for_session,
         session_id=tool_context.session.id,
         user_id=tool_context.session.user_id,
         queries=queries,
@@ -592,6 +593,7 @@ RUN_CONFIG = RunConfig(
         language_code="ko-KR",
         voice_config=types.VoiceConfig(
             prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                #voice_name="Kore"
                 voice_name="Alnilam"
             )
         )
