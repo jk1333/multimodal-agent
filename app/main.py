@@ -570,7 +570,7 @@ async def find_items(
         tool_context: ADK tool context for the current user session.
         input_stream: ADK live input stream for streaming tools.
 
-    Yields:
+    Returns:
         A comma-separated string of top matched item names, or "No items found".
     """
     session = session_state_for(tool_context.session.id, tool_context.session.user_id)
@@ -585,7 +585,7 @@ async def find_items(
             publish=True,
         )
         names = [item["name"] for item in recommended[:3]]
-        yield ", ".join(names) if names else "No items found"
+        return ", ".join(names) if names else "No items found"
     finally:
         session.tool_running = False
 
