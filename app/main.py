@@ -326,6 +326,9 @@ async def client_to_agent(
     while True:
         message = await ws.receive()
         if "bytes" in message:
+            # Discard audio ONLY when a tool is running (database search)
+            if getattr(session, "tool_running", False):
+                continue
             queue.send_realtime(
                 types.Blob(mime_type="audio/pcm;rate=16000", data=message["bytes"])
             )
@@ -335,6 +338,8 @@ async def client_to_agent(
 
         payload = json.loads(message["text"])
         if payload.get("type") == "text":
+            if getattr(session, "tool_running", False):
+                continue
             queue.send_content(types.Content(parts=[types.Part(text=payload["text"])]))
             continue
         if payload.get("type") != "image":
@@ -344,6 +349,8 @@ async def client_to_agent(
         session.update_image(image)
         should_forward_to_agent = payload.get("forwardToAgent", True)
         if should_forward_to_agent:
+            if getattr(session, "tool_running", False):
+                continue
             queue.send_realtime(
                 types.Blob(mime_type=payload.get("mimeType", "image/jpeg"), data=image)
             )
@@ -566,21 +573,40 @@ async def find_items(
     Yields:
         A comma-separated string of top matched item names, or "No items found".
     """
-    recommended, _ = await asyncio.to_thread(
-        _run_find_items_for_session,
-        session_id=tool_context.session.id,
-        user_id=tool_context.session.user_id,
-        queries=queries,
-        ranking_query=ranking_query,
-        publish=True,
-    )
-    names = [item["name"] for item in recommended[:3]]
-    yield ", ".join(names) if names else "No items found"
+    session = session_state_for(tool_context.session.id, tool_context.session.user_id)
+    session.tool_running = True
+    try:
+        recommended, _ = await asyncio.to_thread(
+            _run_find_items_for_session,
+            session_id=tool_context.session.id,
+            user_id=tool_context.session.user_id,
+            queries=queries,
+            ranking_query=ranking_query,
+            publish=True,
+        )
+        names = [item["name"] for item in recommended[:3]]
+        yield ", ".join(names) if names else "No items found"
+    finally:
+        session.tool_running = False
 
+
+from google.adk.models.google_llm import Gemini
+
+agent_llm = Gemini(
+    model=AGENT_MODEL,
+    speech_config=types.SpeechConfig(
+        language_code="ko-KR",
+        voice_config=types.VoiceConfig(
+            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                voice_name="Alnilam"
+            )
+        )
+    )
+)
 
 agent = Agent(
     name="mm_agent",
-    model=AGENT_MODEL,
+    model=agent_llm,
     tools=[google_search, find_items],
     instruction=AGENT_PROMPT,
 )
@@ -589,16 +615,6 @@ RUNNER = Runner(app_name=APP_NAME, agent=agent, session_service=SESSION_SERVICE)
 RUN_CONFIG = RunConfig(
     streaming_mode=StreamingMode.BIDI,
     response_modalities=["AUDIO"],
-    speech_config=types.SpeechConfig(
-        language_code="ko-KR",
-        voice_config=types.VoiceConfig(
-            prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                #voice_name="Kore"
-                voice_name="Alnilam"
-            )
-        )
-
-    ),
     #input_audio_transcription=types.AudioTranscriptionConfig(
     #    language_codes=['ko-KR', 'en-US']
     #),

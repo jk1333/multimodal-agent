@@ -21,6 +21,7 @@ const imageServer = "https://thumbnail.aidemo.dev"
 
 let ws = null;
 let micOn = false;
+let agentSpeaking = false;
 let camOn = false;
 let recorder = null;
 let player = null;
@@ -80,31 +81,51 @@ function connect() {
 // --- Event handling ---
 
 let currentAgentText = "";
+let completedPhasesText = "";
+let currentPhaseText = "";
 let currentAgentEl = null;
 let hasFinalOutputTranscription = false;
+let hasOutputTranscriptionThisTurn = false;
 let currentInputEl = null;
 let currentInputText = "";
-
+let silenceTailCount = 0;
+let micOffRequested = false;
 function handleEvent(event) {
-  // Handle turn complete — reset accumulator
+  // Abort trailing silence tail instantly when any active agent signal starts arriving
+  if (event.outputTranscription || event.content || event.toolCall) {
+    silenceTailCount = 0;
+    agentSpeaking = true;
+  }
+
+  // Handle turn complete — reset accumulator and speaking state
   if (event.turnComplete) {
-    currentAgentEl = null;
-    currentAgentText = "";
+    agentSpeaking = false;
+    // We no longer clear currentAgentEl or currentAgentText here!
+    // This allows intermediate transitions (like internal Google Search, custom tools,
+    // or multi-part responses) to append directly to the same message bubble.
+    // They are cleanly reset when the user starts a new voice or text query, or on interruption.
+    completedPhasesText = currentAgentText;
+    currentPhaseText = "";
     hasFinalOutputTranscription = false;
+    hasOutputTranscriptionThisTurn = false;
     currentInputEl = null;
     currentInputText = "";
     return;
   }
 
-  // Handle interrupted — mark partial message and stop audio
+  // Handle interrupted — mark partial message, stop audio, and reset speaking state
   if (event.interrupted) {
+    agentSpeaking = false;
     if (currentAgentEl) {
       currentAgentEl.classList.add("interrupted");
     }
     if (player && player._worklet) player._worklet.port.postMessage({ command: "endOfAudio" });
     currentAgentEl = null;
     currentAgentText = "";
+    completedPhasesText = "";
+    currentPhaseText = "";
     hasFinalOutputTranscription = false;
+    hasOutputTranscriptionThisTurn = false;
     currentInputEl = null;
     currentInputText = "";
     return;
@@ -115,6 +136,11 @@ function handleEvent(event) {
     if (!currentInputEl) {
       currentInputEl = addMessage("you (voice)", "");
       currentInputText = "";
+      // Reset agent bubble elements for the new voice query
+      currentAgentEl = null;
+      currentAgentText = "";
+      completedPhasesText = "";
+      currentPhaseText = "";
     }
     if (event.inputTranscription.finished) {
       currentInputText = event.inputTranscription.text;
@@ -127,16 +153,19 @@ function handleEvent(event) {
 
   // Handle output transcription (agent's spoken words)
   if (event.outputTranscription && shouldRenderTextChunk(event.outputTranscription)) {
+    agentSpeaking = true;
+    hasOutputTranscriptionThisTurn = true;
     if (!currentAgentEl) {
       currentAgentEl = addMessage("agent", "");
     }
     
     if (event.outputTranscription.finished) {
       hasFinalOutputTranscription = true;
-      currentAgentText = event.outputTranscription.text;
+      currentPhaseText = event.outputTranscription.text;
     } else {
-      currentAgentText += event.outputTranscription.text;
+      currentPhaseText += event.outputTranscription.text;
     }
+    currentAgentText = completedPhasesText + currentPhaseText;
     
     const textEl = currentAgentEl.querySelector(".text");
     updateTextWithTypewriter(textEl, currentAgentText, event.outputTranscription.finished);
@@ -146,20 +175,24 @@ function handleEvent(event) {
   // Handle content events (text or audio)
   const content = event.content;
   if (content && content.parts) {
+    agentSpeaking = true;
     for (const part of content.parts) {
       // Audio response
       if (part.inlineData) {
+        agentSpeaking = true;
         const bytes = base64ToBytes(part.inlineData.data);
         if (player) player.play(bytes);
       }
       // Text response (fallback for non-audio or text-only responses)
       if (part.text) {
-        if (!currentAgentEl) {
-          currentAgentEl = addMessage("agent", "");
+        if (!hasOutputTranscriptionThisTurn) {
+          if (!currentAgentEl) {
+            currentAgentEl = addMessage("agent", "");
+          }
+          currentAgentText += part.text;
+          currentAgentEl.querySelector(".text").textContent = cleanCJKSpaces(currentAgentText);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
         }
-        currentAgentText += part.text;
-        currentAgentEl.querySelector(".text").textContent = cleanCJKSpaces(currentAgentText);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
       }
     }
   }
@@ -285,6 +318,12 @@ function getMediaAccessErrorMessage() {
 function sendText() {
   const text = textInput.value.trim();
   if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+  agentSpeaking = true; // Block silent buffers while agent is preparing and speaking the text response
+  // Reset agent bubble elements for the new text query
+  currentAgentEl = null;
+  currentAgentText = "";
+  completedPhasesText = "";
+  currentPhaseText = "";
   ws.send(JSON.stringify({ type: "text", text }));
   addMessage("you", text);
   textInput.value = "";
@@ -321,10 +360,29 @@ async function startMic() {
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(new Uint8Array(pcmBuffer));
         }
+        
+        // If a mic OFF toggle was requested, this buffer represents the final piece
+        // of active user speech. Now we can safely transition to OFF and begin the silence tail!
+        if (micOffRequested) {
+          micOn = false;
+          micOffRequested = false;
+          silenceTailCount = 3; // Begin 3 buffers (1.5s) of trailing silence to guarantee reliable server-side VAD trigger
+        }
       } else {
-        // Send zero-filled silent data continuously when micOn is false to keep audio & video timelines synchronized
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(new Uint8Array(pcmBuffer.byteLength));
+        // Handle silence tail transition or continuous silence sync
+        if (silenceTailCount > 0) {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(new Uint8Array(pcmBuffer.byteLength));
+          }
+          silenceTailCount--;
+        } else {
+          // Send continuous silence when muted to keep timeline synchronized,
+          // but pause it when the agent is speaking or a text query is running.
+          if (!agentSpeaking) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(new Uint8Array(pcmBuffer.byteLength));
+            }
+          }
         }
       }
     });
@@ -347,7 +405,17 @@ function stopMic() {
 async function toggleMic() {
   if (!hasStartedExperience) return;
   try {
-    micOn = !micOn;
+    if (micOn) {
+      // User finished speaking and requested to turn the mic OFF.
+      // We set micOffRequested = true to let the recorder callback send the current
+      // buffer of active speech as real audio, then cleanly transition to muted silence.
+      micOffRequested = true;
+    } else {
+      // Turn the mic ON immediately.
+      micOn = true;
+      micOffRequested = false;
+      silenceTailCount = 0;
+    }
     updateMicToggleBtnUI();
   } catch (e) {
     console.error("Mic toggle error:", e);
@@ -357,7 +425,8 @@ async function toggleMic() {
 
 function updateMicToggleBtnUI() {
   if (!micToggleBtn) return;
-  if (micOn) {
+  const isMicActive = micOn && !micOffRequested;
+  if (isMicActive) {
     micToggleBtn.classList.add("active");
     const textEl = micToggleBtn.querySelector(".mic-text");
     if (textEl) textEl.textContent = "음성 인식 켜짐";
@@ -408,6 +477,8 @@ function stopCamera() {
 function captureAndSend() {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   const now = Date.now();
+  // Forward images to Gemini continuously to keep the server-side multimodal timeline
+  // perfectly synchronized, ensuring the agent always references the most up-to-date visual frame!
   const sendForAgentVision = now - lastAgentVisionSentAt >= AGENT_VISION_SEND_MS;
   if (!videoEl.videoWidth) return;
 
