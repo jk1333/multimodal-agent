@@ -592,16 +592,18 @@ async def find_items(
 
 from google.adk.models.google_llm import Gemini
 
-agent_llm = Gemini(
-    model=AGENT_MODEL,
-    speech_config=types.SpeechConfig(
-        language_code="ko-KR",
-        voice_config=types.VoiceConfig(
-            prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                voice_name="Alnilam"
-            )
+speech_config = types.SpeechConfig(
+    language_code="ko-KR",
+    voice_config=types.VoiceConfig(
+        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+            voice_name="Alnilam"
         )
     )
+)
+
+agent_llm = Gemini(
+    model=AGENT_MODEL,
+    speech_config=speech_config,
 )
 
 agent = Agent(
@@ -615,12 +617,7 @@ RUNNER = Runner(app_name=APP_NAME, agent=agent, session_service=SESSION_SERVICE)
 RUN_CONFIG = RunConfig(
     streaming_mode=StreamingMode.BIDI,
     response_modalities=["AUDIO"],
-    #input_audio_transcription=types.AudioTranscriptionConfig(
-    #    language_codes=['ko-KR', 'en-US']
-    #),
-    #output_audio_transcription=types.AudioTranscriptionConfig(
-    #    language_codes=['ko-KR', 'en-US']
-    #),
+    speech_config=speech_config,
 )
 
 
