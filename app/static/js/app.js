@@ -21,7 +21,6 @@ const imageServer = "https://thumbnail.aidemo.dev"
 
 let ws = null;
 let micOn = false;
-let silenceRemainingMs = 0;
 let camOn = false;
 let recorder = null;
 let player = null;
@@ -323,13 +322,9 @@ async function startMic() {
           ws.send(new Uint8Array(pcmBuffer));
         }
       } else {
-        // Send zero-filled silent data for a short period after muting to trigger server-side VAD
-        if (silenceRemainingMs > 0) {
-          const chunkDurationMs = (pcmBuffer.byteLength / 2) / 16000 * 1000;
-          silenceRemainingMs -= chunkDurationMs;
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(new Uint8Array(pcmBuffer.byteLength));
-          }
+        // Send zero-filled silent data continuously when micOn is false to keep audio & video timelines synchronized
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(new Uint8Array(pcmBuffer.byteLength));
         }
       }
     });
@@ -353,9 +348,6 @@ async function toggleMic() {
   if (!hasStartedExperience) return;
   try {
     micOn = !micOn;
-    if (!micOn) {
-      silenceRemainingMs = 800; // Send 0.800 seconds of trailing silence to let server recognize the end of speech
-    }
     updateMicToggleBtnUI();
   } catch (e) {
     console.error("Mic toggle error:", e);
