@@ -88,7 +88,7 @@ let hasFinalOutputTranscription = false;
 let hasOutputTranscriptionThisTurn = false;
 let currentInputEl = null;
 let currentInputText = "";
-let micOffRequested = false;
+
 function handleEvent(event) {
   // Set agentSpeaking instantly when any active agent signal starts arriving
   if (event.outputTranscription || event.content || event.toolCall) {
@@ -363,13 +363,6 @@ async function startMic() {
           ws.send(new Uint8Array(pcmBuffer.byteLength));
         }
       }
-      
-      // If a mic OFF toggle was requested, this buffer represents the final piece
-      // of active user speech. Transition immediately to muted silence!
-      if (micOffRequested) {
-        micOn = false;
-        micOffRequested = false;
-      }
     });
   }
   await recorder.start();
@@ -391,14 +384,13 @@ async function toggleMic() {
   if (!hasStartedExperience) return;
   try {
     if (micOn) {
-      // User finished speaking and requested to turn the mic OFF.
-      // We set micOffRequested = true to let the recorder callback send the current
-      // buffer of active speech as real audio, then cleanly transition to muted silence.
-      micOffRequested = true;
+      // Turn the mic OFF instantly
+      micOn = false;
     } else {
-      // Turn the mic ON immediately.
+      // Turn the mic ON instantly
       micOn = true;
-      micOffRequested = false;
+      lastAgentVisionSentAt = 0; // Force immediate forwarding of next image frame
+      captureAndSend(); // Instantly capture and send the current frame with forwardToAgent = true!
     }
     updateMicToggleBtnUI();
   } catch (e) {
@@ -409,38 +401,49 @@ async function toggleMic() {
 
 function updateMicToggleBtnUI() {
   if (!micToggleBtn) return;
-  const isMicActive = micOn && !micOffRequested;
-  if (isMicActive) {
+  if (micOn) {
     micToggleBtn.classList.add("active");
     const textEl = micToggleBtn.querySelector(".mic-text");
-    if (textEl) textEl.textContent = "음성 인식 켜짐";
-    micToggleBtn.title = "음성 입력 비활성화";
+    if (textEl) textEl.textContent = "Mic ON";
   } else {
     micToggleBtn.classList.remove("active");
     const textEl = micToggleBtn.querySelector(".mic-text");
-    if (textEl) textEl.textContent = "음성 인식 꺼짐";
-    micToggleBtn.title = "음성 입력 활성화";
+    if (textEl) textEl.textContent = "Mic OFF";
   }
 }
 
-// --- Camera ---
+// --- Video / Camera ---
 
 async function startCamera() {
-  if (camStream) stopCamera();
-  camStream = await navigator.mediaDevices.getUserMedia({
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    addSystemMessage("Camera API is not supported in this browser.");
+    return;
+  }
+
+  const constraints = {
     video: {
+      facingMode: currentFacingMode,
       width: { ideal: 640 },
       height: { ideal: 480 },
-      facingMode: { ideal: currentFacingMode },
     },
-  });
-  videoEl.srcObject = camStream;
-  videoContainer.classList.add("active");
-  camOn = true;
-  lastAgentVisionSentAt = 0;
+    audio: false,
+  };
 
-  // Send frames every 1s
-  camInterval = setInterval(captureAndSend, 1000);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    videoEl.srcObject = stream;
+    videoContainer.classList.add("active");
+    videoEl.onloadedmetadata = () => {
+      videoEl.play();
+      camOn = true;
+      lastAgentVisionSentAt = 0;
+      camInterval = setInterval(captureAndSend, 1000);
+      updateCamToggleBtnUI();
+    };
+  } catch (e) {
+    console.error("Camera access error:", e);
+    addSystemMessage("Could not access camera: " + e.message);
+  }
 }
 
 function stopCamera() {
@@ -448,14 +451,14 @@ function stopCamera() {
     clearInterval(camInterval);
     camInterval = null;
   }
-  if (camStream) {
-    camStream.getTracks().forEach((t) => t.stop());
-    camStream = null;
+  if (videoEl.srcObject) {
+    videoEl.srcObject.getTracks().forEach((track) => track.stop());
+    videoEl.srcObject = null;
   }
-  videoEl.srcObject = null;
   videoContainer.classList.remove("active");
   camOn = false;
   lastAgentVisionSentAt = 0;
+  updateCamToggleBtnUI();
 }
 
 function captureAndSend() {
