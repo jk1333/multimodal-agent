@@ -88,12 +88,10 @@ let hasFinalOutputTranscription = false;
 let hasOutputTranscriptionThisTurn = false;
 let currentInputEl = null;
 let currentInputText = "";
-let silenceTailCount = 0;
 let micOffRequested = false;
 function handleEvent(event) {
-  // Abort trailing silence tail instantly when any active agent signal starts arriving
+  // Set agentSpeaking instantly when any active agent signal starts arriving
   if (event.outputTranscription || event.content || event.toolCall) {
-    silenceTailCount = 0;
     agentSpeaking = true;
   }
 
@@ -355,35 +353,22 @@ async function startMic() {
 
   if (!recorder) {
     recorder = new AudioRecorder((pcmBuffer) => {
-      if (micOn) {
-        // Send real PCM data when micOn is true
-        if (ws && ws.readyState === WebSocket.OPEN) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        if (micOn) {
+          // Send real PCM data when micOn is true
           ws.send(new Uint8Array(pcmBuffer));
-        }
-        
-        // If a mic OFF toggle was requested, this buffer represents the final piece
-        // of active user speech. Now we can safely transition to OFF and begin the silence tail!
-        if (micOffRequested) {
-          micOn = false;
-          micOffRequested = false;
-          silenceTailCount = 3; // Begin 3 buffers (1.5s) of trailing silence to guarantee reliable server-side VAD trigger
-        }
-      } else {
-        // Handle silence tail transition or continuous silence sync
-        if (silenceTailCount > 0) {
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(new Uint8Array(pcmBuffer.byteLength));
-          }
-          silenceTailCount--;
         } else {
-          // Send continuous silence when muted to keep timeline synchronized,
-          // but pause it when the agent is speaking or a text query is running.
-          if (!agentSpeaking) {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-              ws.send(new Uint8Array(pcmBuffer.byteLength));
-            }
-          }
+          // Send zero-filled silence continuously when micOn is false
+          // This keeps the master audio clock and video frames in 100% continuous synchronization
+          ws.send(new Uint8Array(pcmBuffer.byteLength));
         }
+      }
+      
+      // If a mic OFF toggle was requested, this buffer represents the final piece
+      // of active user speech. Transition immediately to muted silence!
+      if (micOffRequested) {
+        micOn = false;
+        micOffRequested = false;
       }
     });
   }
@@ -414,7 +399,6 @@ async function toggleMic() {
       // Turn the mic ON immediately.
       micOn = true;
       micOffRequested = false;
-      silenceTailCount = 0;
     }
     updateMicToggleBtnUI();
   } catch (e) {
